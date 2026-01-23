@@ -1,7 +1,3 @@
-# Based on:
-# - https://github.com/anthropics/claude-code/blob/main/.devcontainer/Dockerfile
-# - https://github.com/emarc/claude-contained/blob/main/Dockerfile
-
 FROM node:20
 
 ARG TZ
@@ -114,6 +110,7 @@ ENV EDITOR=nano
 ENV VISUAL=nano
 
 # Install Claude
+ENV PATH=$PATH:/home/node/.local/bin
 RUN curl -fsSL https://claude.ai/install.sh | bash
 
 # Copy and set up firewall script
