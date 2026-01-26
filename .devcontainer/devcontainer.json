@@ -22,7 +22,8 @@
         "eamodio.gitlens",
         "vscjava.vscode-java-pack",
         "ms-azuretools.vscode-docker",
-        "ms-azuretools.vscode-containers"
+        "ms-azuretools.vscode-containers",
+        "pflannery.vscode-versionlens"
       ],
       "settings": {
         "editor.formatOnSave": true,
