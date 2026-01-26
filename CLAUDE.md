@@ -42,6 +42,7 @@ docker build -t my-application:latest .  # Build Docker image
 
 - You are sandboxed behind a firewall.
 - All web sites you want to access must be explicitly allowed.
+  - See `.devcontainer/allowed-domains.conf` for a list of allowed domains
 - You do not have direct access to the remote Git repository.
   - Never attempt to push, pull, or modify Git configuration.
   - Assume the current branch is up to date with the origin.
