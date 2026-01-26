@@ -6,6 +6,12 @@
       "TZ": "${localEnv:TZ:Europe/Helsinki}"
     }
   },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+			"moby": "false"
+    }
+  },
   "runArgs": ["--cap-add=NET_ADMIN", "--cap-add=NET_RAW"],
   "customizations": {
     "vscode": {
@@ -14,7 +20,9 @@
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
         "eamodio.gitlens",
-        "vscjava.vscode-java-pack"
+        "vscjava.vscode-java-pack",
+        "ms-azuretools.vscode-docker",
+        "ms-azuretools.vscode-containers"
       ],
       "settings": {
         "editor.formatOnSave": true,
@@ -44,6 +52,7 @@
   },
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
   "workspaceFolder": "/workspace",
-  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh",
-  "waitFor": "postStartCommand"
+  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh && sudo /usr/local/share/docker-init.sh",
+  "waitFor": "postStartCommand",
+  "privileged": false
 }
