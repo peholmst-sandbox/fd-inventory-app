@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(tree:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(mkdir:*)",
+      "Bash(./mvnw:*)",
+      "Bash(./mvnw*)",
+      "Bash(./mvnw*|*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(xargs:*)",
+      "Bash(wc:*)",
+      "Bash(tee:*)"
+    ]
+  },
+  "enableAllProjectMcpServers": true
+}

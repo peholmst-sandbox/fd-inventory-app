@@ -4,7 +4,8 @@
 .settings
 .project
 .classpath
-.claude/
+
+.claude/settings.local.json
 
 *.iml
 .DS_Store
