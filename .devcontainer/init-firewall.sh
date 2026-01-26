@@ -2,7 +2,7 @@
 set -euo pipefail  # Exit on error, undefined vars, and pipeline failures
 IFS=$'\n\t'       # Stricter word splitting
 
-# 1. Extract Docker DNS info BEFORE any flushing
+# Extract Docker DNS info BEFORE any flushing
 DOCKER_DNS_RULES=$(iptables-save -t nat | grep "127\.0\.0\.11" || true)
 
 # Flush existing rules and delete existing ipsets
@@ -14,7 +14,7 @@ iptables -t mangle -F
 iptables -t mangle -X
 ipset destroy allowed-domains 2>/dev/null || true
 
-# 2. Selectively restore ONLY internal Docker DNS resolution
+# Selectively restore ONLY internal Docker DNS resolution
 if [ -n "$DOCKER_DNS_RULES" ]; then
     echo "Restoring Docker DNS rules..."
     iptables -t nat -N DOCKER_OUTPUT 2>/dev/null || true
@@ -40,8 +40,31 @@ iptables -A OUTPUT -o lo -j ACCEPT
 # Create ipset with CIDR support
 ipset create allowed-domains hash:net
 
-# Resolve and add allowed domains
+# Fetch GitHub meta information and aggregate + add their IP ranges
+echo "Fetching GitHub IP ranges..."
+gh_ranges=$(curl -s https://api.github.com/meta)
+if [ -z "$gh_ranges" ]; then
+    echo "ERROR: Failed to fetch GitHub IP ranges"
+    exit 1
+fi
 
+if ! echo "$gh_ranges" | jq -e '.web and .api and .git' >/dev/null; then
+    echo "ERROR: GitHub API response missing required fields"
+    exit 1
+fi
+
+echo "Processing GitHub IPs..."
+while read -r cidr; do
+    if [[ ! "$cidr" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}$ ]]; then
+        echo "ERROR: Invalid CIDR range from GitHub meta: $cidr"
+        exit 1
+    fi
+    echo "Adding GitHub range $cidr"
+    ipset add allowed-domains "$cidr"
+done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git)[]' | aggregate -q)
+
+
+# Resolve and add allowed domains
 CONFIG_FILE="${FIREWALL_CONFIG:-/workspace/.devcontainer/allowed-domains.conf}"
 
 if [[ ! -f "$CONFIG_FILE" ]]; then
