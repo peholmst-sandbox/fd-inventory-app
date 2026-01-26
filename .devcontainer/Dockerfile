@@ -28,12 +28,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install Java 25 (Eclipse Temurin/Adoptium)
 RUN mkdir -p /etc/apt/keyrings \
-    && wget -qO - https://packages.adoptium.net/artifactory/api/gpg/key/public | gpg --dearmor | tee /etc/apt/trusted.gpg.d/adoptium.gpg > /dev/null \
-    && echo "deb https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list \
-    && apt-get update \
-    && apt-get install -y temurin-25-jdk \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+  && wget -qO - https://packages.adoptium.net/artifactory/api/gpg/key/public | gpg --dearmor | tee /etc/apt/trusted.gpg.d/adoptium.gpg > /dev/null \
+  && echo "deb https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list \
+  && apt-get update \
+  && apt-get install -y temurin-25-jdk \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
 
 # Set JAVA_HOME (create symlink for architecture independence)
 RUN ln -s /usr/lib/jvm/temurin-25-jdk-* /usr/lib/jvm/temurin-25-jdk
@@ -84,8 +84,8 @@ RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhisto
 ENV DEVCONTAINER=true
 
 # Create workspace and config directories and set permissions
-RUN mkdir -p /workspace /home/node/.claude && \
-  chown -R node:node /workspace /home/node/.claude
+RUN mkdir -p /workspace /home/node/.claude /home/node/.m2 && \
+  chown -R node:node /workspace /home/node/.claude /home/node/.m2
 
 WORKDIR /workspace
 
