@@ -37,3 +37,11 @@ docker build -t my-application:latest .  # Build Docker image
 ./mvnw test -Dtest=TaskServiceTest  # Run a single test class
 ./mvnw test -Dtest=TaskServiceTest#tasks_are_stored_in_the_database_with_the_current_timestamp  # Run a single test method
 ```
+
+## Sandbox Rules
+
+- You are sandboxed behind a firewall.
+- All web sites you want to access must be explicitly allowed.
+- You do not have direct access to the remote Git repository.
+  - Never attempt to push, pull, or modify Git configuration.
+  - Assume the current branch is up to date with the origin.
