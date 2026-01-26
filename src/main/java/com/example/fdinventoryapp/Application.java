@@ -1,4 +1,4 @@
-package com.example;
+package com.example.fdinventoryapp;
 
 import com.vaadin.flow.theme.lumo.Lumo;
 import org.springframework.boot.SpringApplication;
