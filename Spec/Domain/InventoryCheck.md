@@ -73,14 +73,25 @@ An **Inventory Check** is a systematic verification of equipment and consumables
 When a check has been IN_PROGRESS for more than 4 hours:
 1. System marks status as ABANDONED
 2. abandonedAt is set to current timestamp
-3. Any unverified items remain unverified
-4. Audit log records automatic abandonment
+3. Reason is set to "AUTO_TIMEOUT"
+4. Any unverified items remain unverified
+5. Audit log records automatic abandonment
 
-Resume behavior (within 30 minutes of abandon):
-1. Same user can resume the check
-2. Status returns to IN_PROGRESS
+**Resume window (30 minutes post-abandon):**
+1. Same user can resume the check within 30 minutes of abandonedAt
+2. On resume: status returns to IN_PROGRESS, abandonedAt is cleared
 3. Previously verified items retain their status
-4. abandonedAt is cleared
+4. Progress continues from where it stopped
+
+**After resume window expires:**
+1. Check cannot be resumed
+2. User must start a new inventory check
+3. The abandoned check remains in history for audit purposes
+
+**Race condition prevention:**
+- Auto-abandon job should check `abandonedAt IS NULL` before abandoning
+- Resume operation should use optimistic locking on the check record
+- If auto-abandon and resume race, resume wins (user intent takes priority)
 
 ## 8. Example
 
@@ -137,3 +148,4 @@ Key metrics derived from inventory checks:
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | 2026-01-30 | — | Initial draft |
+| 1.1 | 2026-01-30 | — | Clarified auto-abandon timing, resume window, and race condition handling |

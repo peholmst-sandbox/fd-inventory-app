@@ -41,6 +41,8 @@ A **Station** is a fire service facility where apparatus are housed and firefigh
 | BR-03 | Deactivating a station does not delete its data; historical records are preserved |
 | BR-04 | Firefighters can only access data for stations they are assigned to |
 | BR-05 | Maintenance technicians can access all stations |
+| BR-06 | When a station is deactivated, firefighters assigned only to that station lose system access |
+| BR-07 | Historical data from deactivated stations is accessible to maintenance technicians and administrators for audit purposes |
 
 ## 5. Lifecycle
 
@@ -59,7 +61,26 @@ A **Station** is a fire service facility where apparatus are housed and firefigh
 - **Maintenance Technicians:** Can view and manage all stations
 - **System Administrators:** Full access including create/deactivate
 
-## 7. Example
+## 7. Deactivation Behavior
+
+When a station is deactivated:
+
+| Aspect | Behavior |
+|--------|----------|
+| **Firefighter access** | Revoked; login redirects to "station inactive" message |
+| **Apparatus** | Must be transferred or decommissioned before deactivation |
+| **Equipment** | Must be transferred to other stations before deactivation |
+| **Open issues** | Must be resolved or transferred before deactivation |
+| **Historical data** | Preserved and accessible to maintenance/admin roles |
+| **In-progress checks** | Must be completed or abandoned before deactivation |
+
+**Preconditions for deactivation:**
+1. No apparatus assigned (all transferred or decommissioned)
+2. No equipment in storage (all transferred)
+3. No open issues
+4. No in-progress inventory checks or audits
+
+## 8. Example
 
 ```json
 {
@@ -79,7 +100,7 @@ A **Station** is a fire service facility where apparatus are housed and firefigh
 }
 ```
 
-## 8. Notes
+## 9. Notes
 
 - Station is the primary tenant boundary for multi-tenancy
 - All queries for firefighter users must be scoped by station
@@ -92,3 +113,4 @@ A **Station** is a fire service facility where apparatus are housed and firefigh
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | 2026-01-30 | — | Initial draft |
+| 1.1 | 2026-01-30 | — | Added BR-06/BR-07 and Section 7 (Deactivation Behavior) |

@@ -96,9 +96,11 @@ A firefighter verifies that all required equipment is present and in working con
 | Step | Actor | System |
 |------|-------|--------|
 | 6f.1 | Firefighter navigates away or closes app | Saves current progress; check remains "In Progress" |
-| 6f.2 | Firefighter returns to app later | Displays option to resume or abandon the check |
-| 6f.3a | Firefighter chooses "Resume" | Returns to where they left off |
-| 6f.3b | Firefighter chooses "Abandon" | Marks check as "Abandoned"; records reason |
+| 6f.2 | Firefighter returns to app later | Evaluates check status (see below) |
+| 6f.3a | Check is "In Progress" (< 4 hours old) | Displays option to resume or abandon the check |
+| 6f.3b | Check was auto-abandoned (< 30 min ago) | Displays "Check was auto-abandoned. Resume?" with option to continue or start fresh |
+| 6f.3c | Check was auto-abandoned (> 30 min ago) | Displays "Previous check expired. Start new check?" |
+| 6f.4 | Firefighter chooses action | Resumes existing, starts new, or cancels |
 
 ### 6g. Consumable Quantity Check (at step 4)
 | Step | Actor | System |
@@ -135,6 +137,7 @@ A firefighter verifies that all required equipment is present and in working con
 | BR-03 | Checks in progress for more than 4 hours are automatically marked as Abandoned |
 | BR-04 | Damaged and missing items automatically create issue records for maintenance review |
 | BR-05 | Consumable quantity discrepancies greater than 20% require a note |
+| BR-06 | An auto-abandoned check can be resumed within 30 minutes of abandonment by the original user. After 30 minutes, a new check must be started. |
 
 ## 9. User Interface Requirements
 
@@ -191,3 +194,4 @@ A firefighter verifies that all required equipment is present and in working con
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | 2026-01-30 | — | Initial draft |
+| 1.1 | 2026-01-30 | — | Added BR-06 (30-min resume window); clarified 6f interrupted flow |

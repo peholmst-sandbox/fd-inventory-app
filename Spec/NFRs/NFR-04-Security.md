@@ -32,8 +32,24 @@ The multi-tenant nature of the system (multiple stations sharing one deployment)
 | Role | Station Scope | Capabilities |
 |------|---------------|--------------|
 | **Firefighter** | Assigned station only | View apparatus, perform inventory checks, report issues |
-| **Maintenance Technician** | All stations | All firefighter capabilities + equipment management, audits, transfers, reports |
-| **System Administrator** | All stations | All capabilities + user management, system configuration |
+| **Maintenance Technician** | All stations | All firefighter capabilities + equipment management, audits, transfers, restocking, reports |
+| **System Administrator** | All stations | All maintenance capabilities + user management, station management, system configuration, audit log access |
+
+### 3.2.1 System Administrator Specific Capabilities
+
+System Administrators have all Maintenance Technician capabilities plus:
+
+| Capability | Description |
+|------------|-------------|
+| User management | Create, modify, deactivate users; assign roles and stations |
+| Station management | Create, modify, activate/deactivate stations |
+| Equipment type management | Create and modify equipment type definitions |
+| Apparatus management | Transfer apparatus between stations (UC-07) |
+| System configuration | Configure session timeout, notification settings, etc. |
+| Audit log access | Query and export full audit trail |
+| Data export | Export data for external reporting or archival |
+
+**Note:** System Administrator is a dual role (operational + administrative). Administrators can perform inventory checks, audits, and other operational tasks in addition to administrative functions.
 
 ### 3.3 Data Isolation Requirements
 
@@ -47,7 +63,15 @@ The multi-tenant nature of the system (multiple stations sharing one deployment)
 | Other users' inventory checks (own station) | Read-only | Full |
 | Other stations' inventory checks | None | Full |
 
-### 3.4 Transport Security
+### 3.4 Deactivated Station Access
+
+| Role | Access to Deactivated Station Data |
+|------|-----------------------------------|
+| **Firefighter** | None (even if previously assigned) |
+| **Maintenance Technician** | Read-only for historical records |
+| **System Administrator** | Full read access; can reactivate station |
+
+### 3.5 Transport Security
 
 | Requirement | Specification |
 |-------------|---------------|
@@ -113,3 +137,4 @@ All API endpoints accessing station-scoped resources must verify the user's stat
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | 2026-01-30 | — | Initial draft |
+| 1.1 | 2026-01-30 | — | Added Section 3.2.1 (Admin capabilities), Section 3.4 (Deactivated station access) |

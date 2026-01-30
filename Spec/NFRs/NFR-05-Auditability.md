@@ -64,6 +64,35 @@ Users with appropriate permissions must be able to query audit records by:
 - Station
 - Event type
 
+### 3.5 Relationship to Domain Entities
+
+The audit trail complements but does not replace domain entities:
+
+| Aspect | Domain Entities | Audit Trail |
+|--------|-----------------|-------------|
+| **Purpose** | Operational data for current state | Historical record of all changes |
+| **Queryable by** | Business logic, UI | Compliance, investigation |
+| **Mutable** | Yes (status updates, etc.) | No (immutable) |
+| **Retention** | Operational lifetime | 7+ years |
+
+**Guiding principles:**
+
+1. **Domain entities are source of truth** for current state (e.g., "Is this check complete?")
+2. **Audit trail is source of truth** for historical questions (e.g., "Who changed this status and when?")
+3. **Audit events supplement, not duplicate** — audit captures the change, domain entity reflects result
+4. **Domain entities may be archived/deleted** after retention period; audit trail is preserved
+
+**Example: Inventory Check**
+
+| Action | Domain Entity Change | Audit Event |
+|--------|---------------------|-------------|
+| Start check | Create InventoryCheck (IN_PROGRESS) | `INVENTORY_CHECK_STARTED` |
+| Verify item | Create InventoryCheckItem (PRESENT) | `INVENTORY_ITEM_VERIFIED` |
+| Mark damaged | Create InventoryCheckItem (DAMAGED), Create Issue | `INVENTORY_ITEM_DAMAGED`, `ISSUE_CREATED` |
+| Complete check | Update InventoryCheck (COMPLETED) | `INVENTORY_CHECK_COMPLETED` |
+
+The InventoryCheck entity provides fast queries for "show me today's checks" while the audit trail enables "show me everything that happened to equipment X over 5 years."
+
 ## 4. Implementation Requirements
 
 ### 4.1 Write Path
@@ -110,3 +139,4 @@ Users with appropriate permissions must be able to query audit records by:
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | 2026-01-30 | — | Initial draft |
+| 1.1 | 2026-01-30 | — | Added Section 3.5 (Relationship to Domain Entities) |

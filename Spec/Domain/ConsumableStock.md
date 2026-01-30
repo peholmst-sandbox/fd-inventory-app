@@ -48,8 +48,36 @@
 | BR-04 | If type requiresExpiry, expiryDate should be tracked |
 | BR-05 | Quantity below requiredQuantity triggers low-stock indicator |
 | BR-06 | Multiple lots with different expiry dates may require separate records |
+| BR-07 | Consumables cannot be in "In Transit" state; inter-location moves are recorded as paired TRANSFER_OUT/TRANSFER_IN restock records |
+| BR-08 | stationId is derived from apparatusId when apparatus is set; explicit stationId only for storage |
 
-## 5. Stock Levels
+## 5. Assignment States
+
+Consumable stock has simpler assignment rules than serialised equipment:
+
+| State | apparatusId | compartmentId | stationId | Description |
+|-------|-------------|---------------|-----------|-------------|
+| On Apparatus | Set | Optional | (derived) | Stock is on an apparatus |
+| In Station Storage | Null | Null | Set | Stock is in station storage area |
+
+**Key differences from Equipment Items:**
+
+| Aspect | Equipment Item | Consumable Stock |
+|--------|----------------|------------------|
+| In Transit state | Yes (during transfer) | No — consumables are adjusted, not transferred |
+| Transfer mechanism | TransferRecord entity | Restock records (TRANSFER_OUT/TRANSFER_IN) |
+| Compartment required | Yes (when on apparatus) | No (can be "loose" on apparatus) |
+
+**Validation rules:**
+
+| Rule | Description |
+|------|-------------|
+| V-01 | If apparatusId is set, stationId must match the apparatus's station |
+| V-02 | If compartmentId is set, apparatusId must also be set |
+| V-03 | If compartmentId is set, it must belong to the specified apparatus |
+| V-04 | Either apparatusId or stationId must be set (consumables always have a location) |
+
+## 6. Stock Levels
 
 | Indicator | Condition |
 |-----------|-----------|
@@ -59,7 +87,7 @@
 | **OK** | quantity >= requiredQuantity |
 | **Overstocked** | quantity > requiredQuantity * 1.5 |
 
-## 6. Example
+## 7. Example
 
 ```json
 {
@@ -80,7 +108,7 @@
 }
 ```
 
-## 7. Multi-Lot Handling
+## 8. Multi-Lot Handling
 
 When consumables have different lot numbers or expiry dates, there are two approaches:
 
@@ -96,7 +124,7 @@ When consumables have different lot numbers or expiry dates, there are two appro
 
 **Recommendation:** Start with Option A; consider Option B for medical supplies where lot tracking is critical.
 
-## 8. Quantity Adjustments
+## 9. Quantity Adjustments
 
 Stock quantities change through:
 
@@ -110,7 +138,7 @@ Stock quantities change through:
 
 All adjustments should be recorded with a reason.
 
-## 9. Notes
+## 10. Notes
 
 - Consider separate "usage log" for detailed consumption tracking
 - Expiry notifications should be generated before expiry date
@@ -123,3 +151,4 @@ All adjustments should be recorded with a reason.
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | 2026-01-30 | — | Initial draft |
+| 1.1 | 2026-01-30 | — | Added Section 5 (Assignment States), BR-07/BR-08 |
