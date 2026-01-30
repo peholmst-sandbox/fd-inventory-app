@@ -46,3 +46,8 @@ docker build -t my-application:latest .  # Build Docker image
 - You do not have direct access to the remote Git repository.
   - Never attempt to push, pull, or modify Git configuration.
   - Assume the current branch is up to date with the origin.
+
+## MCP Servers
+
+- Read `MCP-SERVERS.md` for a summary of what servers are available to you.
+- Use the MCP servers to fetch up-to-date information instead of relying on your training.
