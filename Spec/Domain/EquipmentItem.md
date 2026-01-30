@@ -38,6 +38,7 @@ An **Equipment Item** is an individual, trackable piece of equipment identified 
 - `DAMAGED` — Damaged, needs repair
 - `IN_REPAIR` — Currently being repaired
 - `MISSING` — Cannot be located
+- `FAILED_INSPECTION` — Failed formal inspection/audit, requires attention
 - `RETIRED` — No longer in service
 - `EXPIRED` — Past expiry date (for items with expiry)
 
@@ -76,6 +77,10 @@ An **Equipment Item** is an individual, trackable piece of equipment identified 
                      │         ┌─────────┐          │
                      │         │ MISSING │          │
                      │         └─────────┘          │
+                     │               │               │
+                     │    ┌──────────────────┐      │
+                     │    │ FAILED_INSPECTION│      │
+                     │    └──────────────────┘      │
                      │               │               │
                      └───────────────┴───────────────┘
                             (can return to OK)
@@ -142,3 +147,4 @@ Common queries for equipment items:
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | 2026-01-30 | — | Initial draft |
+| 1.1 | 2026-01-30 | — | Added FAILED_INSPECTION status (referenced by UC-03) |
