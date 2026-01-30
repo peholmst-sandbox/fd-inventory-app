@@ -124,7 +124,6 @@
                                     <log>PostgreSQL init process complete; ready for start up</log>
                                     <time>60000</time>
                                 </wait>
-                                <autoRemove>true</autoRemove>
                             </run>
                         </image>
                     </images>
