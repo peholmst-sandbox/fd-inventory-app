@@ -10,6 +10,8 @@
     <properties>
         <java.version>25</java.version>
         <vaadin.version>25.0.3</vaadin.version>
+        <docker-maven-plugin.version>0.48.0</docker-maven-plugin.version>
+        <flyway-maven-plugin.version>12.0.0</flyway-maven-plugin.version>
     </properties>
     
     <parent>
@@ -98,21 +100,86 @@
     <build>
         <defaultGoal>spring-boot:run</defaultGoal>
         <plugins>
+            <!-- Docker plugin to manage PostgreSQL container for jOOQ code generation -->
             <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>com.vaadin</groupId>
-                <artifactId>vaadin-maven-plugin</artifactId>
-                <version>${vaadin.version}</version>
+                <groupId>io.fabric8</groupId>
+                <artifactId>docker-maven-plugin</artifactId>
+                <version>${docker-maven-plugin.version}</version>
+                <configuration>
+                    <images>
+                        <image>
+                            <alias>postgres-jooq</alias>
+                            <name>postgres:16-alpine</name>
+                            <run>
+                                <containerNamePattern>firestock-jooq-build</containerNamePattern>
+                                <env>
+                                    <POSTGRES_USER>firestock</POSTGRES_USER>
+                                    <POSTGRES_PASSWORD>firestock</POSTGRES_PASSWORD>
+                                    <POSTGRES_DB>firestock</POSTGRES_DB>
+                                </env>
+                                <ports>
+                                    <port>15432:5432</port>
+                                </ports>
+                                <wait>
+                                    <log>PostgreSQL init process complete; ready for start up</log>
+                                    <time>60000</time>
+                                </wait>
+                                <autoRemove>true</autoRemove>
+                            </run>
+                        </image>
+                    </images>
+                </configuration>
                 <executions>
                     <execution>
+                        <id>start-postgres</id>
+                        <phase>generate-sources</phase>
                         <goals>
-                            <goal>build-frontend</goal>
+                            <goal>start</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>stop-postgres</id>
+                        <phase>process-sources</phase>
+                        <goals>
+                            <goal>stop</goal>
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <!-- Flyway plugin to run migrations against the build database -->
+            <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
+                <version>${flyway-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>flyway-migrate</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>migrate</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <url>jdbc:postgresql://localhost:15432/firestock</url>
+                    <user>firestock</user>
+                    <password>firestock</password>
+                    <locations>
+                        <location>filesystem:src/main/resources/db/migration</location>
+                    </locations>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.flywaydb</groupId>
+                        <artifactId>flyway-database-postgresql</artifactId>
+                        <version>${flyway-maven-plugin.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.postgresql</groupId>
+                        <artifactId>postgresql</artifactId>
+                        <version>42.7.5</version>
+                    </dependency>
+                </dependencies>
             </plugin>
             <!-- jOOQ Code Generation Plugin -->
             <plugin>
@@ -129,25 +196,18 @@
                     </execution>
                 </executions>
                 <configuration>
+                    <jdbc>
+                        <driver>org.postgresql.Driver</driver>
+                        <url>jdbc:postgresql://localhost:15432/firestock</url>
+                        <user>firestock</user>
+                        <password>firestock</password>
+                    </jdbc>
                     <generator>
                         <database>
-                            <!-- Use DDLDatabase to generate from Flyway SQL files -->
-                            <name>org.jooq.meta.extensions.ddl.DDLDatabase</name>
-                            <properties>
-                                <property>
-                                    <key>scripts</key>
-                                    <value>src/main/resources/db/migration/V[123]*.sql</value>
-                                </property>
-                                <property>
-                                    <key>sort</key>
-                                    <value>flyway</value>
-                                </property>
-                                <property>
-                                    <key>defaultNameCase</key>
-                                    <value>lower</value>
-                                </property>
-                            </properties>
-                            <inputSchema>PUBLIC</inputSchema>
+                            <name>org.jooq.meta.postgres.PostgresDatabase</name>
+                            <inputSchema>public</inputSchema>
+                            <includes>.*</includes>
+                            <excludes>flyway_schema_history</excludes>
                         </database>
                         <generate>
                             <pojos>true</pojos>
@@ -162,11 +222,27 @@
                 </configuration>
                 <dependencies>
                     <dependency>
-                        <groupId>org.jooq</groupId>
-                        <artifactId>jooq-meta-extensions</artifactId>
-                        <version>${jooq.version}</version>
+                        <groupId>org.postgresql</groupId>
+                        <artifactId>postgresql</artifactId>
+                        <version>42.7.5</version>
                     </dependency>
                 </dependencies>
+            </plugin>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>com.vaadin</groupId>
+                <artifactId>vaadin-maven-plugin</artifactId>
+                <version>${vaadin.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>build-frontend</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
