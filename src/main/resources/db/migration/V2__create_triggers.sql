@@ -1,4 +1,4 @@
--- V4: Create triggers for automatic updated_at timestamp management
+-- V2: Create triggers for automatic updated_at timestamp management
 -- Note: This migration is excluded from jOOQ code generation (PostgreSQL-specific syntax)
 
 CREATE OR REPLACE FUNCTION update_updated_at_column()

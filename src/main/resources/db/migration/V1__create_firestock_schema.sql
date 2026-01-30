@@ -1,4 +1,4 @@
--- V3: Create FireStock schema
+-- V1: Create FireStock schema
 -- Complete database schema for the FireStock fire apparatus inventory system
 
 -- ============================================================================
