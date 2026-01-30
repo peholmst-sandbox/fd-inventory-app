@@ -2,6 +2,21 @@
 
 This file provides guidance when working with code in this repository.
 
+## Project Overview
+
+**FireStock** is a regional fire apparatus inventory system for tracking equipment across fire stations. It allows firefighters to perform shift inventory checks, maintenance crews to manage equipment lifecycle, and provides visibility into stock levels across all stations.
+
+## Specifications
+
+Project specifications are located in the `Spec/` directory:
+
+- `Spec/Context.md` - Project context, problem statement, stakeholders, and success criteria
+- `Spec/Domain/` - Domain model entity specifications
+- `Spec/UseCases/` - Use case specifications (UC-XX format)
+- `Spec/NFRs/` - Non-functional requirements (NFR-XX format)
+
+When implementing features or fixing bugs, consult the relevant specification files to understand requirements and domain concepts.
+
 ## Technology Stack
 
 This is a Vaadin application built with:
