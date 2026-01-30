@@ -83,7 +83,7 @@ System Administrators have all Maintenance Technician capabilities plus:
 ## 4. Implementation Requirements
 
 ### 4.1 Query-Level Enforcement
-All database queries accessing station-scoped data must include station filtering. This must be enforced at the repository/DAO layer, not rely on UI-level filtering alone.
+All database queries accessing station-scoped data must include station filtering. This must be enforced at the repository layer, not rely on UI-level filtering alone.
 
 ```
 -- Example: Equipment query for firefighter

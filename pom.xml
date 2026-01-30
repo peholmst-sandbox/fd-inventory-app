@@ -208,8 +208,9 @@
                             <excludes>flyway_schema_history</excludes>
                         </database>
                         <generate>
-                            <pojos>true</pojos>
-                            <daos>true</daos>
+                            <records>true</records>
+                            <pojos>false</pojos>
+                            <daos>false</daos>
                             <springAnnotations>true</springAnnotations>
                         </generate>
                         <target>
