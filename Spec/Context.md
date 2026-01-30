@@ -37,6 +37,7 @@ FireStock provides a single, authoritative system for tracking all equipment acr
 - Inventory tracking for all apparatus across multiple stations in the region
 - Serialised equipment tracking (individual items with unique identifiers)
 - Quantity-based tracking for consumables (e.g., foam canisters, medical supplies)
+- **Crew-owned equipment**: Equipment purchased or built by station crews, carried on apparatus but not subject to safety inspections; stays at the home station when apparatus transfers
 - Shift inventory checks performed by firefighters
 - Formal audits performed by maintenance crews
 - Equipment lifecycle: registration, transfer, damage reporting, retirement
@@ -119,3 +120,4 @@ FireStock provides a single, authoritative system for tracking all equipment acr
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | 2026-01-30 | — | Initial draft |
+| 1.1 | 2026-01-30 | — | Added crew-owned equipment to scope |

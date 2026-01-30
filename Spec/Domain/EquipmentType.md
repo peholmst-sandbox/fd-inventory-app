@@ -65,6 +65,7 @@ An **Equipment Type** is a template or category that defines a class of equipmen
 | BR-03 | If requiresTesting is true, testIntervalDays must be specified |
 | BR-04 | Deactivating a type prevents new items but preserves existing |
 | BR-05 | Categories are predefined; cannot be extended by users |
+| BR-06 | Types with requiresTesting = true cannot be used for crew-owned equipment (safety equipment must be department-owned) |
 
 ## 6. Example (Serialised)
 
@@ -137,3 +138,4 @@ The system should be pre-populated with common equipment types:
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | 2026-01-30 | — | Initial draft |
+| 1.1 | 2026-01-30 | — | Added BR-06 (crew-owned equipment restriction on testing types) |

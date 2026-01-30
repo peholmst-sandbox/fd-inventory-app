@@ -17,6 +17,8 @@ An **Equipment Item** is an individual, trackable piece of equipment identified 
 | `equipmentTypeId` | UUID | Yes | Reference to equipment type |
 | `serialNumber` | String | Yes | Manufacturer or assigned serial number |
 | `barcode` | String | No | Barcode for scanning (may differ from serial) |
+| `ownershipType` | OwnershipType | Yes | Whether department or crew-owned |
+| `homeStationId` | UUID | No | Station where crew-owned equipment belongs (if personal) |
 | `manufacturer` | String | No | Item's manufacturer (may override type default) |
 | `model` | String | No | Item's model (may override type default) |
 | `acquisitionDate` | Date | No | When item was acquired |
@@ -33,6 +35,10 @@ An **Equipment Item** is an individual, trackable piece of equipment identified 
 
 ## 3. Enumerations
 
+### OwnershipType
+- `DEPARTMENT` — Owned by the fire department; maintained by maintenance crews
+- `CREW_OWNED` — Collectively owned by the station crews; maintained by the crews themselves
+
 ### EquipmentStatus
 - `OK` — Operational and available
 - `DAMAGED` — Damaged, needs repair
@@ -48,6 +54,7 @@ An **Equipment Item** is an individual, trackable piece of equipment identified 
 |-----------------|-------------|-------------|
 | Equipment Type | N:1 | Item is an instance of a type |
 | Station | N:1 | Item may be in station storage |
+| Station (Home) | N:1 | For crew-owned equipment, the station where it belongs |
 | Apparatus | N:1 | Item may be assigned to an apparatus |
 | Compartment | N:1 | Item may be assigned to a compartment |
 | Issue | 1:N | Item may have associated issues |
@@ -65,6 +72,11 @@ An **Equipment Item** is an individual, trackable piece of equipment identified 
 | BR-05 | Items with status DAMAGED or MISSING should have an associated issue |
 | BR-06 | If type requiresTesting, nextTestDueDate should be tracked |
 | BR-07 | Equipment type must have trackingMethod = SERIALISED |
+| BR-08 | Crew-owned equipment (ownershipType = CREW_OWNED) must have homeStationId set |
+| BR-09 | Crew-owned equipment cannot be of a type that requiresTesting (safety inspection items cannot be crew-owned) |
+| BR-10 | When an apparatus transfers to another station, crew-owned equipment on that apparatus must remain at the original station |
+| BR-11 | Crew-owned equipment maintenance and replacement is the responsibility of the station crews, not the department |
+| BR-12 | Department equipment (ownershipType = DEPARTMENT) must not have homeStationId set |
 
 ## 6. Lifecycle
 
@@ -134,11 +146,28 @@ Common queries for equipment items:
 | By next test due | Maintenance planning |
 | By serial number or barcode | Lookup during scanning |
 
-## 10. Notes
+## 10. Crew-Owned Equipment Notes
+
+Crew-owned equipment differs from department equipment in several ways:
+
+| Aspect | Department Equipment | Crew-Owned Equipment |
+|--------|---------------------|----------------------|
+| Ownership | Fire department | Station crews (collectively) |
+| Registration | Maintenance technician | Firefighters at the station |
+| Maintenance | Maintenance crews | Station crews |
+| Safety inspections | Required (if applicable) | Not subject to (not allowed on types requiring testing) |
+| Apparatus transfer | Moves with apparatus | Stays at home station |
+| Inventory checks | Included | Included |
+| Examples | SCBA, radios, medical kits | Crew flashlights, custom tools, PPE accessories |
+
+Crew-owned equipment allows firefighters to buy or build equipment for their station's use. This equipment can be carried on apparatus and should be included in inventory checks, but responsibility for maintenance and replacement falls to the station crews rather than the department.
+
+## 11. Notes
 
 - Equipment items have a complete audit trail via the Audit Log
 - Photos may be associated with items (stored separately, linked by ID)
 - Consider soft delete (status = RETIRED) rather than hard delete
+- Crew-owned equipment provides station crews flexibility while maintaining inventory visibility
 
 ---
 
@@ -148,3 +177,4 @@ Common queries for equipment items:
 |---------|------|--------|---------|
 | 1.0 | 2026-01-30 | — | Initial draft |
 | 1.1 | 2026-01-30 | — | Added FAILED_INSPECTION status (referenced by UC-03) |
+| 1.2 | 2026-01-30 | — | Added crew-owned equipment support (ownershipType, homeStationId) |

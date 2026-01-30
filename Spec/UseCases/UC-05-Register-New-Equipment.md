@@ -15,7 +15,8 @@ A maintenance technician adds a new piece of equipment to the system, either as 
 
 | Actor | Description |
 |-------|-------------|
-| **Maintenance Technician** (primary) | Personnel responsible for equipment management |
+| **Maintenance Technician** (primary) | Personnel responsible for department equipment management |
+| **Firefighter** (secondary) | Station crew member registering crew-owned equipment |
 | **System** | FireStock application |
 
 ## 3. Preconditions
@@ -108,6 +109,19 @@ A maintenance technician adds a new piece of equipment to the system, either as 
 | 6e.2 | — | Generates label with barcode, serial number, type |
 | 6e.3 | — | Sends to connected printer or displays PDF |
 
+### 6f. Register Crew-Owned Equipment (Firefighter)
+| Step | Actor | System |
+|------|-------|--------|
+| 6f.1 | Firefighter selects "Register Crew Equipment" from menu | Displays simplified registration form |
+| 6f.2 | Firefighter selects equipment type from allowed list | Only types not requiring testing are shown |
+| 6f.3 | Firefighter enters description or serial number | Records identifier |
+| 6f.4 | Firefighter optionally scans or enters barcode | Associates barcode with item |
+| 6f.5 | — | System automatically sets homeStationId to firefighter's station |
+| 6f.6 | Firefighter selects apparatus and compartment (optional) | Records initial assignment |
+| 6f.7 | Firefighter adds optional notes | Records notes |
+| 6f.8 | Firefighter taps "Register" | Validates input; creates record with ownershipType = CREW_OWNED |
+| 6f.9 | — | Displays confirmation: "Crew equipment registered" |
+
 ## 7. Exception Flows
 
 ### 7a. Duplicate Serial Number
@@ -130,13 +144,17 @@ A maintenance technician adds a new piece of equipment to the system, either as 
 
 | ID | Rule |
 |----|------|
-| BR-01 | Only maintenance technicians can register equipment |
-| BR-02 | Serial numbers must be unique within the system |
-| BR-03 | Barcodes must be unique; reassignment is allowed with confirmation |
-| BR-04 | Equipment type is required |
-| BR-05 | Acquisition date cannot be in the future |
-| BR-06 | New equipment types require approval (or restricted to admins) |
-| BR-07 | Consumables must have quantity > 0 |
+| BR-01 | Maintenance technicians can register department equipment |
+| BR-02 | Firefighters can register crew-owned equipment at their assigned station |
+| BR-03 | Serial numbers must be unique within the system |
+| BR-04 | Barcodes must be unique; reassignment is allowed with confirmation |
+| BR-05 | Equipment type is required |
+| BR-06 | Acquisition date cannot be in the future |
+| BR-07 | New equipment types require approval (or restricted to admins) |
+| BR-08 | Consumables must have quantity > 0 |
+| BR-09 | Crew-owned equipment can only be of types that do not require testing (safety inspection) |
+| BR-10 | Crew-owned equipment is automatically assigned homeStationId based on the registering user's station |
+| BR-11 | Crew-owned equipment maintenance is the responsibility of the station crews, not the department |
 
 ## 9. Equipment Types
 
@@ -215,3 +233,4 @@ Pre-configured types should include categories such as:
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | 2026-01-30 | — | Initial draft |
+| 1.1 | 2026-01-30 | — | Added crew-owned equipment registration by firefighters |

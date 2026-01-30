@@ -31,6 +31,7 @@ An **Issue** is a reported problem with equipment or consumables that requires a
 | `resolvedById` | UUID | No | User who resolved the issue |
 | `resolvedAt` | Timestamp | No | When issue was resolved |
 | `resolutionNotes` | String | No | Description of how issue was resolved |
+| `isCrewResponsibility` | Boolean | Yes | Whether issue is for crew-owned equipment (not routed to maintenance) |
 | `createdAt` | Timestamp | Yes | When record was created |
 | `updatedAt` | Timestamp | Yes | When record was last modified |
 
@@ -95,8 +96,10 @@ An **Issue** is a reported problem with equipment or consumables that requires a
 | BR-05 | Photos must be under 10 MB each |
 | BR-06 | Maximum 5 photos per issue |
 | BR-07 | Resolving an issue requires resolution notes |
-| BR-08 | Critical issues should trigger notification to maintenance technicians |
+| BR-08 | Critical issues for department equipment should trigger notification to maintenance technicians |
 | BR-09 | When equipment item is marked DAMAGED or MISSING, an issue should be created automatically |
+| BR-10 | Issues for crew-owned equipment have isCrewResponsibility = true and are not routed to maintenance technicians |
+| BR-11 | Crew responsibility issues are visible to station crews for self-management |
 
 ## 7. Lifecycle
 
@@ -164,6 +167,7 @@ An **Issue** is a reported problem with equipment or consumables that requires a
 - Integration with external maintenance systems may be added in future
 - Consider email/SMS notifications for critical issues
 - Issue metrics (time to acknowledge, time to resolve) should be tracked for KPIs
+- Crew responsibility issues allow station crews to track problems with their own equipment without involving maintenance technicians
 
 ---
 
@@ -172,3 +176,4 @@ An **Issue** is a reported problem with equipment or consumables that requires a
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | 2026-01-30 | — | Initial draft |
+| 1.1 | 2026-01-30 | — | Added isCrewResponsibility for crew-owned equipment issues |

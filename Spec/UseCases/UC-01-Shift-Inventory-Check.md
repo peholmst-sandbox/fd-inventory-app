@@ -110,6 +110,14 @@ A firefighter verifies that all required equipment is present and in working con
 | 6g.3 | If discrepancy: prompts for note | Firefighter explains (e.g., "Used 2 canisters on last call") |
 | 6g.4 | Return to step 5 | — |
 
+### 6h. Crew-Owned Equipment (at step 4 or 5)
+| Step | Actor | System |
+|------|-------|--------|
+| 6h.1 | Item is crew-owned equipment | Displays item with "Crew" indicator |
+| 6h.2 | Firefighter verifies item presence/condition | Same verification process as department equipment |
+| 6h.3 | If damaged or missing | Issue is created but flagged as crew responsibility (not routed to maintenance) |
+| 6h.4 | Return to step 5 | — |
+
 ## 7. Exception Flows
 
 ### 7a. Network Failure (at any step)
@@ -138,6 +146,8 @@ A firefighter verifies that all required equipment is present and in working con
 | BR-04 | Damaged and missing items automatically create issue records for maintenance review |
 | BR-05 | Consumable quantity discrepancies greater than 20% require a note |
 | BR-06 | An auto-abandoned check can be resumed within 30 minutes of abandonment by the original user. After 30 minutes, a new check must be started. |
+| BR-07 | Crew-owned equipment is included in inventory checks alongside department equipment |
+| BR-08 | Issues reported for crew-owned equipment are flagged as crew responsibility (not routed to maintenance technicians) |
 
 ## 9. User Interface Requirements
 
@@ -195,3 +205,4 @@ A firefighter verifies that all required equipment is present and in working con
 |---------|------|--------|---------|
 | 1.0 | 2026-01-30 | — | Initial draft |
 | 1.1 | 2026-01-30 | — | Added BR-06 (30-min resume window); clarified 6f interrupted flow |
+| 1.2 | 2026-01-30 | — | Added crew-owned equipment handling in inventory checks |
