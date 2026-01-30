@@ -27,6 +27,30 @@ This is a Vaadin application built with:
 - Flyway for database schema management
 - Maven build system
 
+## Database Setup
+
+The application requires PostgreSQL. Start it using Docker/Podman:
+
+```bash
+# Using Docker
+docker run -d --name firestock-postgres \
+  -e POSTGRES_USER=firestock \
+  -e POSTGRES_PASSWORD=firestock \
+  -e POSTGRES_DB=firestock \
+  -p 5432:5432 \
+  postgres:16-alpine
+
+# Using Podman
+podman run -d --name firestock-postgres \
+  -e POSTGRES_USER=firestock \
+  -e POSTGRES_PASSWORD=firestock \
+  -e POSTGRES_DB=firestock \
+  -p 5432:5432 \
+  docker.io/postgres:16-alpine
+```
+
+Flyway migrations run automatically on application startup.
+
 ## Development Commands
 
 ### Running the Application
