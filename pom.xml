@@ -179,6 +179,26 @@
                     </dependency>
                 </dependencies>
             </plugin>
+            <!-- Compile converters early so jOOQ codegen can use them -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>compile-converters</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>com/example/firestock/domain/primitives/**/*.java</include>
+                                <include>com/example/firestock/jooq/converters/**/*.java</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <!-- jOOQ Code Generation Plugin -->
             <plugin>
                 <groupId>org.jooq</groupId>
@@ -206,6 +226,155 @@
                             <inputSchema>public</inputSchema>
                             <includes>.*</includes>
                             <excludes>flyway_schema_history</excludes>
+                            <forcedTypes>
+                                <!-- ID Converters -->
+                                <forcedType>
+                                    <userType>com.example.firestock.domain.primitives.ids.StationId</userType>
+                                    <converter>com.example.firestock.jooq.converters.ids.StationIdConverter</converter>
+                                    <includeExpression>station\.id|apparatus\.station_id|user_station_assignment\.station_id|consumable_stock\.station_id|equipment_item\.station_id|equipment_item\.home_station_id|inventory_check\.station_id|issue\.station_id|transfer_record\.source_station_id|transfer_record\.destination_station_id</includeExpression>
+                                    <includeTypes>uuid</includeTypes>
+                                </forcedType>
+                                <forcedType>
+                                    <userType>com.example.firestock.domain.primitives.ids.ApparatusId</userType>
+                                    <converter>com.example.firestock.jooq.converters.ids.ApparatusIdConverter</converter>
+                                    <includeExpression>apparatus\.id|compartment\.apparatus_id|consumable_stock\.apparatus_id|equipment_item\.apparatus_id|manifest_entry\.apparatus_id|inventory_check\.apparatus_id|issue\.apparatus_id|transfer_record\.source_apparatus_id|transfer_record\.destination_apparatus_id</includeExpression>
+                                    <includeTypes>uuid</includeTypes>
+                                </forcedType>
+                                <forcedType>
+                                    <userType>com.example.firestock.domain.primitives.ids.CompartmentId</userType>
+                                    <converter>com.example.firestock.jooq.converters.ids.CompartmentIdConverter</converter>
+                                    <includeExpression>compartment\.id|consumable_stock\.compartment_id|equipment_item\.compartment_id|manifest_entry\.compartment_id|inventory_check_item\.compartment_id|transfer_record\.source_compartment_id|transfer_record\.destination_compartment_id</includeExpression>
+                                    <includeTypes>uuid</includeTypes>
+                                </forcedType>
+                                <forcedType>
+                                    <userType>com.example.firestock.domain.primitives.ids.EquipmentTypeId</userType>
+                                    <converter>com.example.firestock.jooq.converters.ids.EquipmentTypeIdConverter</converter>
+                                    <includeExpression>equipment_type\.id|equipment_item\.equipment_type_id|consumable_stock\.equipment_type_id|manifest_entry\.equipment_type_id</includeExpression>
+                                    <includeTypes>uuid</includeTypes>
+                                </forcedType>
+                                <forcedType>
+                                    <userType>com.example.firestock.domain.primitives.ids.EquipmentItemId</userType>
+                                    <converter>com.example.firestock.jooq.converters.ids.EquipmentItemIdConverter</converter>
+                                    <includeExpression>equipment_item\.id|inventory_check_item\.equipment_item_id|issue\.equipment_item_id|transfer_record\.equipment_item_id</includeExpression>
+                                    <includeTypes>uuid</includeTypes>
+                                </forcedType>
+                                <forcedType>
+                                    <userType>com.example.firestock.domain.primitives.ids.ConsumableStockId</userType>
+                                    <converter>com.example.firestock.jooq.converters.ids.ConsumableStockIdConverter</converter>
+                                    <includeExpression>consumable_stock\.id|inventory_check_item\.consumable_stock_id|issue\.consumable_stock_id|restock_record\.consumable_stock_id</includeExpression>
+                                    <includeTypes>uuid</includeTypes>
+                                </forcedType>
+                                <forcedType>
+                                    <userType>com.example.firestock.domain.primitives.ids.ManifestEntryId</userType>
+                                    <converter>com.example.firestock.jooq.converters.ids.ManifestEntryIdConverter</converter>
+                                    <includeExpression>manifest_entry\.id|inventory_check_item\.manifest_entry_id</includeExpression>
+                                    <includeTypes>uuid</includeTypes>
+                                </forcedType>
+                                <forcedType>
+                                    <userType>com.example.firestock.domain.primitives.ids.UserId</userType>
+                                    <converter>com.example.firestock.jooq.converters.ids.UserIdConverter</converter>
+                                    <includeExpression>app_user\.id|user_station_assignment\.user_id|inventory_check\.performed_by_id|issue\.reported_by_id|issue\.acknowledged_by_id|issue\.resolved_by_id|transfer_record\.initiated_by_id|restock_record\.performed_by_id</includeExpression>
+                                    <includeTypes>uuid</includeTypes>
+                                </forcedType>
+                                <forcedType>
+                                    <userType>com.example.firestock.domain.primitives.ids.InventoryCheckId</userType>
+                                    <converter>com.example.firestock.jooq.converters.ids.InventoryCheckIdConverter</converter>
+                                    <includeExpression>inventory_check\.id|inventory_check_item\.inventory_check_id</includeExpression>
+                                    <includeTypes>uuid</includeTypes>
+                                </forcedType>
+                                <forcedType>
+                                    <userType>com.example.firestock.domain.primitives.ids.InventoryCheckItemId</userType>
+                                    <converter>com.example.firestock.jooq.converters.ids.InventoryCheckItemIdConverter</converter>
+                                    <includeExpression>inventory_check_item\.id</includeExpression>
+                                    <includeTypes>uuid</includeTypes>
+                                </forcedType>
+                                <forcedType>
+                                    <userType>com.example.firestock.domain.primitives.ids.IssueId</userType>
+                                    <converter>com.example.firestock.jooq.converters.ids.IssueIdConverter</converter>
+                                    <includeExpression>issue\.id|issue_photo\.issue_id|inventory_check_item\.issue_id</includeExpression>
+                                    <includeTypes>uuid</includeTypes>
+                                </forcedType>
+                                <forcedType>
+                                    <userType>com.example.firestock.domain.primitives.ids.IssuePhotoId</userType>
+                                    <converter>com.example.firestock.jooq.converters.ids.IssuePhotoIdConverter</converter>
+                                    <includeExpression>issue_photo\.id</includeExpression>
+                                    <includeTypes>uuid</includeTypes>
+                                </forcedType>
+                                <forcedType>
+                                    <userType>com.example.firestock.domain.primitives.ids.TransferRecordId</userType>
+                                    <converter>com.example.firestock.jooq.converters.ids.TransferRecordIdConverter</converter>
+                                    <includeExpression>transfer_record\.id</includeExpression>
+                                    <includeTypes>uuid</includeTypes>
+                                </forcedType>
+                                <forcedType>
+                                    <userType>com.example.firestock.domain.primitives.ids.RestockRecordId</userType>
+                                    <converter>com.example.firestock.jooq.converters.ids.RestockRecordIdConverter</converter>
+                                    <includeExpression>restock_record\.id</includeExpression>
+                                    <includeTypes>uuid</includeTypes>
+                                </forcedType>
+                                <!-- String Converters -->
+                                <forcedType>
+                                    <userType>com.example.firestock.domain.primitives.strings.StationCode</userType>
+                                    <converter>com.example.firestock.jooq.converters.strings.StationCodeConverter</converter>
+                                    <includeExpression>station\.code</includeExpression>
+                                    <includeTypes>varchar</includeTypes>
+                                </forcedType>
+                                <forcedType>
+                                    <userType>com.example.firestock.domain.primitives.strings.UnitNumber</userType>
+                                    <converter>com.example.firestock.jooq.converters.strings.UnitNumberConverter</converter>
+                                    <includeExpression>apparatus\.unit_number</includeExpression>
+                                    <includeTypes>varchar</includeTypes>
+                                </forcedType>
+                                <forcedType>
+                                    <userType>com.example.firestock.domain.primitives.strings.BadgeNumber</userType>
+                                    <converter>com.example.firestock.jooq.converters.strings.BadgeNumberConverter</converter>
+                                    <includeExpression>app_user\.badge_number</includeExpression>
+                                    <includeTypes>varchar</includeTypes>
+                                </forcedType>
+                                <forcedType>
+                                    <userType>com.example.firestock.domain.primitives.strings.EmailAddress</userType>
+                                    <converter>com.example.firestock.jooq.converters.strings.EmailAddressConverter</converter>
+                                    <includeExpression>app_user\.email</includeExpression>
+                                    <includeTypes>varchar</includeTypes>
+                                </forcedType>
+                                <forcedType>
+                                    <userType>com.example.firestock.domain.primitives.strings.SerialNumber</userType>
+                                    <converter>com.example.firestock.jooq.converters.strings.SerialNumberConverter</converter>
+                                    <includeExpression>equipment_item\.serial_number</includeExpression>
+                                    <includeTypes>varchar</includeTypes>
+                                </forcedType>
+                                <forcedType>
+                                    <userType>com.example.firestock.domain.primitives.strings.Barcode</userType>
+                                    <converter>com.example.firestock.jooq.converters.strings.BarcodeConverter</converter>
+                                    <includeExpression>apparatus\.barcode|equipment_item\.barcode</includeExpression>
+                                    <includeTypes>varchar</includeTypes>
+                                </forcedType>
+                                <forcedType>
+                                    <userType>com.example.firestock.domain.primitives.strings.ReferenceNumber</userType>
+                                    <converter>com.example.firestock.jooq.converters.strings.ReferenceNumberConverter</converter>
+                                    <includeExpression>issue\.reference_number|transfer_record\.reference_number|restock_record\.reference_number</includeExpression>
+                                    <includeTypes>varchar</includeTypes>
+                                </forcedType>
+                                <forcedType>
+                                    <userType>com.example.firestock.domain.primitives.strings.PhoneNumber</userType>
+                                    <converter>com.example.firestock.jooq.converters.strings.PhoneNumberConverter</converter>
+                                    <includeExpression>station\.contact_phone|app_user\.phone</includeExpression>
+                                    <includeTypes>varchar</includeTypes>
+                                </forcedType>
+                                <!-- Number Converters -->
+                                <forcedType>
+                                    <userType>com.example.firestock.domain.primitives.numbers.Quantity</userType>
+                                    <converter>com.example.firestock.jooq.converters.numbers.QuantityConverter</converter>
+                                    <includeExpression>consumable_stock\.quantity|inventory_check_item\.quantity_found|inventory_check_item\.quantity_expected|restock_record\.quantity_before|restock_record\.quantity_after</includeExpression>
+                                    <includeTypes>decimal|numeric</includeTypes>
+                                </forcedType>
+                                <forcedType>
+                                    <userType>com.example.firestock.domain.primitives.numbers.RequiredQuantity</userType>
+                                    <converter>com.example.firestock.jooq.converters.numbers.RequiredQuantityConverter</converter>
+                                    <includeExpression>manifest_entry\.required_quantity</includeExpression>
+                                    <includeTypes>integer|int4</includeTypes>
+                                </forcedType>
+                            </forcedTypes>
                         </database>
                         <generate>
                             <records>true</records>
