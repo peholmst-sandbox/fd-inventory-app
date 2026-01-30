@@ -1,1 +1,521 @@
-/* Add your styles here */
+/* FireStock Custom Styles */
+/* Mobile-first design with large touch targets and high contrast */
+
+/* ===== Color Variables ===== */
+:root {
+    --firestock-present: #2e7d32;
+    --firestock-present-bg: #e8f5e9;
+    --firestock-missing: #c62828;
+    --firestock-missing-bg: #ffebee;
+    --firestock-damaged: #ef6c00;
+    --firestock-damaged-bg: #fff3e0;
+    --firestock-unchecked: #757575;
+    --firestock-unchecked-bg: #f5f5f5;
+    --firestock-primary: #1565c0;
+    --firestock-primary-bg: #e3f2fd;
+}
+
+/* ===== Global Styles ===== */
+.navbar {
+    background: var(--lumo-base-color);
+    border-bottom: 1px solid var(--lumo-contrast-10pct);
+}
+
+/* ===== Apparatus Selection View ===== */
+.apparatus-selection-view {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.view-header {
+    margin-bottom: 0;
+    color: var(--lumo-header-text-color);
+}
+
+.apparatus-cards {
+    width: 100%;
+}
+
+.apparatus-card {
+    background: var(--lumo-base-color);
+    border: 1px solid var(--lumo-contrast-10pct);
+    border-radius: var(--lumo-border-radius-l);
+    padding: var(--lumo-space-m);
+    cursor: pointer;
+    transition: box-shadow 0.2s, transform 0.1s;
+    min-height: 80px;
+}
+
+.apparatus-card:hover {
+    box-shadow: var(--lumo-box-shadow-m);
+    transform: translateY(-2px);
+}
+
+.apparatus-card:active {
+    transform: translateY(0);
+}
+
+.apparatus-icon {
+    font-size: 32px;
+    color: var(--firestock-primary);
+}
+
+.apparatus-unit {
+    margin: 0;
+    font-size: var(--lumo-font-size-l);
+    font-weight: 600;
+}
+
+.apparatus-station {
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-s);
+}
+
+.last-check-date {
+    font-weight: 500;
+}
+
+/* ===== Inventory Check View ===== */
+.inventory-check-view {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.check-header {
+    background: var(--lumo-base-color);
+    border-bottom: 1px solid var(--lumo-contrast-10pct);
+}
+
+.back-button {
+    min-width: 48px;
+    min-height: 48px;
+}
+
+.check-title {
+    font-size: var(--lumo-font-size-xl);
+    font-weight: 600;
+}
+
+.progress-section {
+    background: var(--firestock-primary-bg);
+}
+
+.progress-text {
+    font-size: var(--lumo-font-size-s);
+    font-weight: 500;
+    color: var(--lumo-secondary-text-color);
+}
+
+.check-progress-bar {
+    --vaadin-progress-bar-height: 8px;
+}
+
+.compartment-tabs {
+    background: var(--lumo-base-color);
+    border-bottom: 1px solid var(--lumo-contrast-10pct);
+}
+
+.barcode-section {
+    background: var(--lumo-contrast-5pct);
+}
+
+.barcode-field {
+    background: var(--lumo-base-color);
+}
+
+.scan-button {
+    min-width: 100px;
+    min-height: 48px;
+}
+
+.items-container {
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+/* ===== Item Card ===== */
+.item-card {
+    background: var(--lumo-base-color);
+    border: 1px solid var(--lumo-contrast-10pct);
+    border-radius: var(--lumo-border-radius-l);
+    padding: var(--lumo-space-m);
+}
+
+.item-name {
+    margin: 0 0 var(--lumo-space-xs) 0;
+    font-size: var(--lumo-font-size-m);
+    font-weight: 600;
+}
+
+.item-type {
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-s);
+    display: block;
+}
+
+.item-serial {
+    color: var(--lumo-tertiary-text-color);
+    font-size: var(--lumo-font-size-xs);
+    font-family: monospace;
+    display: block;
+    margin-top: var(--lumo-space-xs);
+}
+
+/* ===== Status Badges ===== */
+.status-badge {
+    display: inline-block;
+    padding: var(--lumo-space-xs) var(--lumo-space-s);
+    border-radius: var(--lumo-border-radius-m);
+    font-size: var(--lumo-font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-top: var(--lumo-space-s);
+}
+
+.status-unchecked {
+    background: var(--firestock-unchecked-bg);
+    color: var(--firestock-unchecked);
+}
+
+.status-present {
+    background: var(--firestock-present-bg);
+    color: var(--firestock-present);
+}
+
+.status-missing {
+    background: var(--firestock-missing-bg);
+    color: var(--firestock-missing);
+}
+
+.status-damaged {
+    background: var(--firestock-damaged-bg);
+    color: var(--firestock-damaged);
+}
+
+/* ===== Action Buttons ===== */
+.action-buttons {
+    margin-top: var(--lumo-space-m);
+}
+
+.action-btn {
+    min-height: 48px;
+    min-width: 90px;
+    font-weight: 600;
+    flex: 1;
+}
+
+.present-btn {
+    background: var(--firestock-present);
+    color: white;
+}
+
+.present-btn:hover {
+    background: #1b5e20;
+}
+
+.missing-btn {
+    background: var(--firestock-missing);
+    color: white;
+}
+
+.missing-btn:hover {
+    background: #b71c1c;
+}
+
+.damaged-btn {
+    background: var(--firestock-damaged);
+    color: white;
+}
+
+.damaged-btn:hover {
+    background: #e65100;
+}
+
+.check-footer {
+    background: var(--lumo-base-color);
+    border-top: 1px solid var(--lumo-contrast-10pct);
+    padding: var(--lumo-space-m);
+}
+
+.summary-btn {
+    min-height: 48px;
+    min-width: 150px;
+}
+
+/* ===== Item Verification Dialog ===== */
+.item-verification-dialog .dialog-content {
+    min-width: 300px;
+    max-width: 400px;
+}
+
+.dialog-title {
+    margin: 0 0 var(--lumo-space-m) 0;
+}
+
+.dialog-title.status-missing {
+    color: var(--firestock-missing);
+}
+
+.dialog-title.status-damaged {
+    color: var(--firestock-damaged);
+}
+
+.dialog-item-details {
+    background: var(--lumo-contrast-5pct);
+    padding: var(--lumo-space-m);
+    border-radius: var(--lumo-border-radius-m);
+    margin-bottom: var(--lumo-space-m);
+}
+
+.dialog-item-name {
+    font-weight: 600;
+    font-size: var(--lumo-font-size-m);
+    display: block;
+}
+
+.dialog-item-type {
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-s);
+    display: block;
+}
+
+.dialog-item-serial {
+    font-family: monospace;
+    font-size: var(--lumo-font-size-xs);
+    color: var(--lumo-tertiary-text-color);
+    display: block;
+    margin-top: var(--lumo-space-xs);
+}
+
+.dialog-notes {
+    margin-bottom: var(--lumo-space-m);
+}
+
+.dialog-buttons {
+    padding-top: var(--lumo-space-m);
+    border-top: 1px solid var(--lumo-contrast-10pct);
+}
+
+.confirm-btn {
+    min-height: 48px;
+}
+
+.confirm-missing {
+    background: var(--firestock-missing);
+    color: white;
+}
+
+.confirm-damaged {
+    background: var(--firestock-damaged);
+    color: white;
+}
+
+/* ===== Summary View ===== */
+.inventory-summary-view {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.summary-header {
+    background: var(--lumo-base-color);
+    border-bottom: 1px solid var(--lumo-contrast-10pct);
+}
+
+.summary-title {
+    margin: 0;
+    font-size: var(--lumo-font-size-xl);
+}
+
+.summary-subtitle {
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-s);
+}
+
+/* ===== Statistics Cards ===== */
+.stats-grid {
+    width: 100%;
+}
+
+.stat-card {
+    flex: 1;
+    background: var(--lumo-base-color);
+    border: 1px solid var(--lumo-contrast-10pct);
+    border-radius: var(--lumo-border-radius-l);
+    padding: var(--lumo-space-m);
+    text-align: center;
+    min-height: 100px;
+}
+
+.stat-icon {
+    font-size: 24px;
+    margin-bottom: var(--lumo-space-xs);
+}
+
+.stat-value {
+    font-size: var(--lumo-font-size-xxl);
+    font-weight: 700;
+    display: block;
+}
+
+.stat-label {
+    font-size: var(--lumo-font-size-s);
+    color: var(--lumo-secondary-text-color);
+}
+
+.stat-total .stat-icon,
+.stat-total .stat-value {
+    color: var(--firestock-primary);
+}
+
+.stat-present .stat-icon,
+.stat-present .stat-value {
+    color: var(--firestock-present);
+}
+
+.stat-missing .stat-icon,
+.stat-missing .stat-value {
+    color: var(--firestock-missing);
+}
+
+.stat-damaged .stat-icon,
+.stat-damaged .stat-value {
+    color: var(--firestock-damaged);
+}
+
+/* ===== Issues Section ===== */
+.issues-section {
+    flex-grow: 1;
+}
+
+.issues-header {
+    margin: 0 0 var(--lumo-space-m) 0;
+    color: var(--lumo-header-text-color);
+}
+
+.issues-list {
+    width: 100%;
+}
+
+.no-issues {
+    color: var(--firestock-present);
+    font-weight: 500;
+    text-align: center;
+    padding: var(--lumo-space-l);
+}
+
+.issue-card {
+    background: var(--lumo-base-color);
+    border-radius: var(--lumo-border-radius-l);
+    padding: var(--lumo-space-m);
+    border-left: 4px solid;
+}
+
+.issue-card.issue-missing {
+    border-left-color: var(--firestock-missing);
+    background: var(--firestock-missing-bg);
+}
+
+.issue-card.issue-damaged {
+    border-left-color: var(--firestock-damaged);
+    background: var(--firestock-damaged-bg);
+}
+
+.issue-icon {
+    font-size: 20px;
+}
+
+.issue-missing .issue-icon {
+    color: var(--firestock-missing);
+}
+
+.issue-damaged .issue-icon {
+    color: var(--firestock-damaged);
+}
+
+.issue-item-name {
+    font-weight: 600;
+    flex-grow: 1;
+    margin-left: var(--lumo-space-s);
+}
+
+.issue-status-badge {
+    padding: var(--lumo-space-xs) var(--lumo-space-s);
+    border-radius: var(--lumo-border-radius-m);
+    font-size: var(--lumo-font-size-xs);
+    font-weight: 600;
+}
+
+.issue-compartment {
+    display: block;
+    font-size: var(--lumo-font-size-s);
+    color: var(--lumo-secondary-text-color);
+    margin-top: var(--lumo-space-s);
+}
+
+.issue-notes {
+    display: block;
+    font-size: var(--lumo-font-size-s);
+    font-style: italic;
+    margin-top: var(--lumo-space-xs);
+}
+
+.summary-footer {
+    background: var(--lumo-base-color);
+    border-top: 1px solid var(--lumo-contrast-10pct);
+}
+
+.continue-btn,
+.complete-btn {
+    min-height: 48px;
+    min-width: 150px;
+}
+
+/* ===== Mobile Responsiveness ===== */
+@media (max-width: 600px) {
+    .apparatus-selection-view,
+    .inventory-check-view,
+    .inventory-summary-view {
+        max-width: 100%;
+    }
+
+    .action-btn {
+        min-width: 70px;
+        font-size: var(--lumo-font-size-xs);
+    }
+
+    .action-btn vaadin-icon {
+        display: none;
+    }
+
+    .stat-card {
+        min-height: 80px;
+    }
+
+    .stat-value {
+        font-size: var(--lumo-font-size-xl);
+    }
+}
+
+/* ===== High Contrast for Apparatus Bay Conditions ===== */
+@media (prefers-contrast: more) {
+    .status-present {
+        background: var(--firestock-present);
+        color: white;
+    }
+
+    .status-missing {
+        background: var(--firestock-missing);
+        color: white;
+    }
+
+    .status-damaged {
+        background: var(--firestock-damaged);
+        color: white;
+    }
+
+    .item-card,
+    .apparatus-card,
+    .stat-card {
+        border-width: 2px;
+    }
+}
