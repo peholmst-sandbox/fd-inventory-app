@@ -1,4 +1,4 @@
-package com.example.fdinventoryapp;
+package com.example.firestock;
 
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.Test;
@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Import;
 
 import java.time.LocalDateTime;
 
-import static com.example.fdinventoryapp.jooq.Tables.HELLO_WORLD;
+import static com.example.firestock.jooq.Tables.HELLO_WORLD;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Import(TestcontainersConfiguration.class)

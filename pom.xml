@@ -3,14 +3,13 @@
     <modelVersion>4.0.0</modelVersion>
     <!-- Project from https://start.vaadin.com/2744fc78-1f82-4d46-8c41-3f0c2ee7ebc8 -->
     <groupId>com.example</groupId>
-    <artifactId>fd-inventory-app</artifactId>
+    <artifactId>firestock</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
     
     <properties>
         <java.version>25</java.version>
         <vaadin.version>25.0.3</vaadin.version>
-        <jooq.version>3.19.29</jooq.version>
     </properties>
     
     <parent>
@@ -156,7 +155,7 @@
                             <springAnnotations>true</springAnnotations>
                         </generate>
                         <target>
-                            <packageName>com.example.fdinventoryapp.jooq</packageName>
+                            <packageName>com.example.firestock.jooq</packageName>
                             <directory>target/generated-sources/jooq</directory>
                         </target>
                     </generator>
