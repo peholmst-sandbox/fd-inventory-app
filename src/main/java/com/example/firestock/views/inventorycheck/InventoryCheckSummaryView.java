@@ -18,6 +18,7 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import jakarta.annotation.security.PermitAll;
 
 import java.util.List;
 
@@ -27,6 +28,7 @@ import java.util.List;
  */
 @Route(value = "check/:apparatusId/summary", layout = MainLayout.class)
 @PageTitle("Check Summary | FireStock")
+@PermitAll
 public class InventoryCheckSummaryView extends VerticalLayout implements BeforeEnterObserver {
 
     private String apparatusId;

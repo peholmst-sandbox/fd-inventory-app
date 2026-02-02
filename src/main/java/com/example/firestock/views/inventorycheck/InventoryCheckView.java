@@ -19,6 +19,7 @@ import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import jakarta.annotation.security.PermitAll;
 
 import java.util.HashMap;
 import java.util.List;
@@ -30,6 +31,7 @@ import java.util.Map;
  */
 @Route(value = "check", layout = MainLayout.class)
 @PageTitle("Inventory Check | FireStock")
+@PermitAll
 public class InventoryCheckView extends VerticalLayout implements HasUrlParameter<String> {
 
     private String apparatusId;
