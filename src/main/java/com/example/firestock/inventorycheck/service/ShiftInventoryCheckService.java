@@ -24,6 +24,7 @@ import com.example.firestock.jooq.enums.EquipmentStatus;
 import com.example.firestock.jooq.enums.IssueCategory;
 import com.example.firestock.jooq.enums.IssueSeverity;
 import com.example.firestock.jooq.enums.VerificationStatus;
+import com.example.firestock.security.StationAccessEvaluator;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,6 +62,7 @@ public class ShiftInventoryCheckService {
     private final InventoryCheckItemDao inventoryCheckItemDao;
     private final EquipmentDao equipmentDao;
     private final IssueDao issueDao;
+    private final StationAccessEvaluator stationAccess;
 
     public ShiftInventoryCheckService(
             ApparatusQuery apparatusQuery,
@@ -70,7 +72,8 @@ public class ShiftInventoryCheckService {
             InventoryCheckDao inventoryCheckDao,
             InventoryCheckItemDao inventoryCheckItemDao,
             EquipmentDao equipmentDao,
-            IssueDao issueDao) {
+            IssueDao issueDao,
+            StationAccessEvaluator stationAccess) {
         this.apparatusQuery = apparatusQuery;
         this.inventoryCheckQuery = inventoryCheckQuery;
         this.inventoryCheckItemQuery = inventoryCheckItemQuery;
@@ -79,6 +82,7 @@ public class ShiftInventoryCheckService {
         this.inventoryCheckItemDao = inventoryCheckItemDao;
         this.equipmentDao = equipmentDao;
         this.issueDao = issueDao;
+        this.stationAccess = stationAccess;
     }
 
     /**
@@ -88,6 +92,7 @@ public class ShiftInventoryCheckService {
      * @return list of apparatus summaries with last check dates
      */
     @Transactional(readOnly = true)
+    @PreAuthorize("@stationAccess.canAccessStation(#stationId)")
     public List<ApparatusSummary> getApparatusForStation(StationId stationId) {
         return apparatusQuery.findByStationId(stationId);
     }
@@ -98,9 +103,11 @@ public class ShiftInventoryCheckService {
      * @param apparatusId the apparatus to retrieve
      * @return the apparatus details
      * @throws IllegalArgumentException if the apparatus is not found
+     * @throws org.springframework.security.access.AccessDeniedException if the user does not have access
      */
     @Transactional(readOnly = true)
     public ApparatusDetails getApparatusDetails(ApparatusId apparatusId) {
+        stationAccess.requireApparatusAccess(apparatusId);
         return apparatusQuery.findByIdWithCompartmentsAndItems(apparatusId)
             .orElseThrow(() -> new IllegalArgumentException("Apparatus not found: " + apparatusId));
     }
@@ -115,8 +122,11 @@ public class ShiftInventoryCheckService {
      * @return the created inventory check summary
      * @throws ActiveCheckExistsException if an active check already exists for this apparatus
      * @throws IllegalArgumentException if the apparatus is not found
+     * @throws org.springframework.security.access.AccessDeniedException if the user does not have access
      */
     public InventoryCheckSummary startCheck(ApparatusId apparatusId, UserId performedBy) {
+        stationAccess.requireApparatusAccess(apparatusId);
+
         // BR-01: Check for existing active check
         var existingCheck = inventoryCheckQuery.findActiveByApparatusId(apparatusId);
         if (existingCheck.isPresent()) {
@@ -146,9 +156,11 @@ public class ShiftInventoryCheckService {
      *
      * @param apparatusId the apparatus to check
      * @return the active check summary, or empty if no active check
+     * @throws org.springframework.security.access.AccessDeniedException if the user does not have access
      */
     @Transactional(readOnly = true)
     public Optional<InventoryCheckSummary> getActiveCheck(ApparatusId apparatusId) {
+        stationAccess.requireApparatusAccess(apparatusId);
         return inventoryCheckQuery.findActiveByApparatusId(apparatusId)
             .map(r -> new InventoryCheckSummary(
                 r.getId(),
@@ -168,9 +180,11 @@ public class ShiftInventoryCheckService {
      * @param checkId the check ID
      * @return the check summary
      * @throws IllegalArgumentException if the check is not found
+     * @throws org.springframework.security.access.AccessDeniedException if the user does not have access
      */
     @Transactional(readOnly = true)
     public InventoryCheckSummary getCheck(InventoryCheckId checkId) {
+        stationAccess.requireInventoryCheckAccess(checkId);
         return inventoryCheckQuery.findById(checkId)
             .orElseThrow(() -> new IllegalArgumentException("Inventory check not found: " + checkId));
     }
@@ -189,8 +203,11 @@ public class ShiftInventoryCheckService {
      * @throws IllegalArgumentException if the check is not found or not in progress
      * @throws ItemAlreadyVerifiedException if the item has already been verified
      * @throws QuantityDiscrepancyRequiresNotesException if >20% discrepancy without notes
+     * @throws org.springframework.security.access.AccessDeniedException if the user does not have access
      */
     public void verifyItem(ItemVerificationRequest request, UserId performedBy) {
+        stationAccess.requireInventoryCheckAccess(request.checkId());
+
         // Validate the check exists and is in progress
         var check = inventoryCheckQuery.findRecordById(request.checkId())
             .orElseThrow(() -> new IllegalArgumentException("Inventory check not found: " + request.checkId()));
@@ -309,8 +326,11 @@ public class ShiftInventoryCheckService {
      * @return the updated check summary
      * @throws IllegalArgumentException if the check is not found or not in progress
      * @throws IncompleteCheckException if not all items have been verified
+     * @throws org.springframework.security.access.AccessDeniedException if the user does not have access
      */
     public InventoryCheckSummary completeCheck(InventoryCheckId checkId) {
+        stationAccess.requireInventoryCheckAccess(checkId);
+
         var check = inventoryCheckQuery.findRecordById(checkId)
             .orElseThrow(() -> new IllegalArgumentException("Inventory check not found: " + checkId));
 
@@ -337,8 +357,11 @@ public class ShiftInventoryCheckService {
      *
      * @param checkId the check to abandon
      * @throws IllegalArgumentException if the check is not found or not in progress
+     * @throws org.springframework.security.access.AccessDeniedException if the user does not have access
      */
     public void abandonCheck(InventoryCheckId checkId) {
+        stationAccess.requireInventoryCheckAccess(checkId);
+
         var check = inventoryCheckQuery.findRecordById(checkId)
             .orElseThrow(() -> new IllegalArgumentException("Inventory check not found: " + checkId));
 
@@ -355,9 +378,11 @@ public class ShiftInventoryCheckService {
      * @param barcode the scanned barcode
      * @param apparatusId the apparatus to search within
      * @return the matching item, or empty if not found
+     * @throws org.springframework.security.access.AccessDeniedException if the user does not have access
      */
     @Transactional(readOnly = true)
     public Optional<CheckableItem> findByBarcode(Barcode barcode, ApparatusId apparatusId) {
+        stationAccess.requireApparatusAccess(apparatusId);
         return equipmentQuery.findByBarcode(barcode, apparatusId);
     }
 

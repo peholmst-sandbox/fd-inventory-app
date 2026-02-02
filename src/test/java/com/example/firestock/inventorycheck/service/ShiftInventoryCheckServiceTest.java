@@ -7,13 +7,15 @@ import com.example.firestock.domain.primitives.strings.ReferenceNumber;
 import com.example.firestock.domain.primitives.strings.UnitNumber;
 import com.example.firestock.inventorycheck.dto.ItemVerificationRequest;
 import com.example.firestock.jooq.enums.*;
+import com.example.firestock.security.TestSecurityUtils;
 import org.jooq.DSLContext;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.math.BigDecimal;
 
@@ -22,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
-@WithMockUser
 class ShiftInventoryCheckServiceTest {
 
     @Autowired
@@ -32,11 +33,17 @@ class ShiftInventoryCheckServiceTest {
     private DSLContext create;
 
     private StationId testStationId;
+    private StationId otherStationId;
     private ApparatusId testApparatusId;
     private CompartmentId testCompartmentId;
     private EquipmentItemId testEquipmentItemId;
     private EquipmentTypeId testEquipmentTypeId;
     private UserId testUserId;
+
+    @AfterEach
+    void tearDown() {
+        TestSecurityUtils.clearAuthentication();
+    }
 
     @BeforeEach
     void setUp() {
@@ -61,6 +68,17 @@ class ShiftInventoryCheckServiceTest {
             .set(STATION.CODE, new com.example.firestock.domain.primitives.strings.StationCode("ST01"))
             .set(STATION.NAME, "Test Station")
             .execute();
+
+        // Create a second station for access denial tests
+        otherStationId = StationId.generate();
+        create.insertInto(STATION)
+            .set(STATION.ID, otherStationId)
+            .set(STATION.CODE, new com.example.firestock.domain.primitives.strings.StationCode("ST02"))
+            .set(STATION.NAME, "Other Station")
+            .execute();
+
+        // Authenticate as firefighter assigned to test station
+        TestSecurityUtils.authenticateAsFirefighter(testStationId);
 
         testUserId = UserId.generate();
         create.insertInto(APP_USER)
@@ -391,6 +409,193 @@ class ShiftInventoryCheckServiceTest {
 
         assertThrows(ShiftInventoryCheckService.QuantityDiscrepancyRequiresNotesException.class, () ->
             service.verifyItem(consumableRequest, testUserId)
+        );
+    }
+
+    // ==================== Authorization Tests ====================
+
+    @Test
+    void getApparatusForStation_allowsFirefighterForAssignedStation() {
+        // Already authenticated as firefighter with testStationId in setUp
+        var result = service.getApparatusForStation(testStationId);
+
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
+    }
+
+    @Test
+    void getApparatusForStation_deniesFirefighterForUnassignedStation() {
+        // Firefighter is assigned to testStationId, not otherStationId
+        assertThrows(AccessDeniedException.class, () ->
+            service.getApparatusForStation(otherStationId)
+        );
+    }
+
+    @Test
+    void getApparatusForStation_allowsMaintenanceTechnicianForAnyStation() {
+        TestSecurityUtils.authenticateAsMaintenance();
+
+        // Should be able to access test station
+        var result1 = service.getApparatusForStation(testStationId);
+        assertNotNull(result1);
+
+        // Should also be able to access other station
+        var result2 = service.getApparatusForStation(otherStationId);
+        assertNotNull(result2);
+    }
+
+    @Test
+    void getApparatusForStation_allowsAdminForAnyStation() {
+        TestSecurityUtils.authenticateAsAdmin();
+
+        // Should be able to access test station
+        var result1 = service.getApparatusForStation(testStationId);
+        assertNotNull(result1);
+
+        // Should also be able to access other station
+        var result2 = service.getApparatusForStation(otherStationId);
+        assertNotNull(result2);
+    }
+
+    @Test
+    void startCheck_deniesFirefighterForUnassignedStation() {
+        // Create apparatus at other station
+        var otherApparatusId = ApparatusId.generate();
+        create.insertInto(APPARATUS)
+            .set(APPARATUS.ID, otherApparatusId)
+            .set(APPARATUS.UNIT_NUMBER, new UnitNumber("Engine 2"))
+            .set(APPARATUS.TYPE, ApparatusType.ENGINE)
+            .set(APPARATUS.STATION_ID, otherStationId)
+            .set(APPARATUS.STATUS, ApparatusStatus.IN_SERVICE)
+            .execute();
+
+        // Firefighter is assigned to testStationId, not otherStationId
+        assertThrows(AccessDeniedException.class, () ->
+            service.startCheck(otherApparatusId, testUserId)
+        );
+    }
+
+    @Test
+    void getApparatusDetails_deniesFirefighterForUnassignedStation() {
+        // Create apparatus at other station
+        var otherApparatusId = ApparatusId.generate();
+        create.insertInto(APPARATUS)
+            .set(APPARATUS.ID, otherApparatusId)
+            .set(APPARATUS.UNIT_NUMBER, new UnitNumber("Engine 3"))
+            .set(APPARATUS.TYPE, ApparatusType.ENGINE)
+            .set(APPARATUS.STATION_ID, otherStationId)
+            .set(APPARATUS.STATUS, ApparatusStatus.IN_SERVICE)
+            .execute();
+
+        // Firefighter is assigned to testStationId, not otherStationId
+        assertThrows(AccessDeniedException.class, () ->
+            service.getApparatusDetails(otherApparatusId)
+        );
+    }
+
+    @Test
+    void verifyItem_deniesFirefighterForUnassignedStation() {
+        // Create apparatus at other station and start check as maintenance
+        TestSecurityUtils.authenticateAsMaintenance();
+
+        var otherApparatusId = ApparatusId.generate();
+        create.insertInto(APPARATUS)
+            .set(APPARATUS.ID, otherApparatusId)
+            .set(APPARATUS.UNIT_NUMBER, new UnitNumber("Engine 4"))
+            .set(APPARATUS.TYPE, ApparatusType.ENGINE)
+            .set(APPARATUS.STATION_ID, otherStationId)
+            .set(APPARATUS.STATUS, ApparatusStatus.IN_SERVICE)
+            .execute();
+
+        var otherCompartmentId = CompartmentId.generate();
+        create.insertInto(COMPARTMENT)
+            .set(COMPARTMENT.ID, otherCompartmentId)
+            .set(COMPARTMENT.APPARATUS_ID, otherApparatusId)
+            .set(COMPARTMENT.CODE, "L1")
+            .set(COMPARTMENT.NAME, "Left Compartment 1")
+            .set(COMPARTMENT.LOCATION, CompartmentLocation.LEFT_SIDE)
+            .set(COMPARTMENT.DISPLAY_ORDER, 1)
+            .execute();
+
+        var otherEquipmentItemId = EquipmentItemId.generate();
+        create.insertInto(EQUIPMENT_ITEM)
+            .set(EQUIPMENT_ITEM.ID, otherEquipmentItemId)
+            .set(EQUIPMENT_ITEM.EQUIPMENT_TYPE_ID, testEquipmentTypeId)
+            .set(EQUIPMENT_ITEM.APPARATUS_ID, otherApparatusId)
+            .set(EQUIPMENT_ITEM.COMPARTMENT_ID, otherCompartmentId)
+            .set(EQUIPMENT_ITEM.STATUS, EquipmentStatus.OK)
+            .execute();
+
+        // Start check as maintenance (cross-station access)
+        var checkSummary = service.startCheck(otherApparatusId, testUserId);
+
+        // Now switch to firefighter without access to other station
+        TestSecurityUtils.authenticateAsFirefighter(testStationId);
+
+        var request = new ItemVerificationRequest(
+            checkSummary.id(),
+            otherEquipmentItemId,
+            null,
+            otherCompartmentId,
+            null,
+            VerificationStatus.PRESENT,
+            null,
+            null,
+            null
+        );
+
+        // Should be denied
+        assertThrows(AccessDeniedException.class, () ->
+            service.verifyItem(request, testUserId)
+        );
+    }
+
+    @Test
+    void completeCheck_deniesFirefighterForUnassignedStation() {
+        // Create check at other station as maintenance
+        TestSecurityUtils.authenticateAsMaintenance();
+
+        var otherApparatusId = ApparatusId.generate();
+        create.insertInto(APPARATUS)
+            .set(APPARATUS.ID, otherApparatusId)
+            .set(APPARATUS.UNIT_NUMBER, new UnitNumber("Engine 5"))
+            .set(APPARATUS.TYPE, ApparatusType.ENGINE)
+            .set(APPARATUS.STATION_ID, otherStationId)
+            .set(APPARATUS.STATUS, ApparatusStatus.IN_SERVICE)
+            .execute();
+
+        // No items, so check has 0 total items
+        var checkSummary = service.startCheck(otherApparatusId, testUserId);
+
+        // Switch to firefighter without access
+        TestSecurityUtils.authenticateAsFirefighter(testStationId);
+
+        assertThrows(AccessDeniedException.class, () ->
+            service.completeCheck(checkSummary.id())
+        );
+    }
+
+    @Test
+    void abandonCheck_deniesFirefighterForUnassignedStation() {
+        // Create check at other station as maintenance
+        TestSecurityUtils.authenticateAsMaintenance();
+
+        var otherApparatusId = ApparatusId.generate();
+        create.insertInto(APPARATUS)
+            .set(APPARATUS.ID, otherApparatusId)
+            .set(APPARATUS.UNIT_NUMBER, new UnitNumber("Engine 6"))
+            .set(APPARATUS.TYPE, ApparatusType.ENGINE)
+            .set(APPARATUS.STATION_ID, otherStationId)
+            .set(APPARATUS.STATUS, ApparatusStatus.IN_SERVICE)
+            .execute();
+
+        var checkSummary = service.startCheck(otherApparatusId, testUserId);
+
+        // Switch to firefighter without access
+        TestSecurityUtils.authenticateAsFirefighter(testStationId);
+
+        assertThrows(AccessDeniedException.class, () ->
+            service.abandonCheck(checkSummary.id())
         );
     }
 }
