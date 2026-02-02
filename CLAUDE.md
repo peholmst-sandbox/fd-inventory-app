@@ -77,6 +77,24 @@ docker build -t my-application:latest .  # Build Docker image
 ./mvnw test -Dtest=TaskServiceTest#tasks_are_stored_in_the_database_with_the_current_timestamp  # Run a single test method
 ```
 
+### Integration Tests with Podman
+
+Integration tests use TestContainers to spin up a PostgreSQL container. When using Podman instead of Docker:
+
+1. Start the Podman socket service:
+   ```bash
+   systemctl --user start podman.socket
+   ```
+
+2. Run tests with the required environment variables:
+   ```bash
+   DOCKER_HOST=unix:///run/user/1000/podman/podman.sock \
+   TESTCONTAINERS_RYUK_DISABLED=true \
+   ./mvnw test
+   ```
+
+The `TESTCONTAINERS_RYUK_DISABLED=true` flag disables the Ryuk container (resource reaper) which can have compatibility issues with Podman.
+
 ## MCP Servers
 
 - Read `MCP-SERVERS.md` for a summary of what servers are available to you.
