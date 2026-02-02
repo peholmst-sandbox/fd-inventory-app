@@ -1,4 +1,4 @@
-package com.example.firestock.inventorycheck.query;
+package com.example.firestock.inventorycheck.dao;
 
 import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.ConsumableStockId;
@@ -20,14 +20,14 @@ import java.time.Year;
 import static com.example.firestock.jooq.Tables.ISSUE;
 
 /**
- * Query class for issue data access operations.
+ * DAO class for issue write operations.
  */
 @Component
-public class IssueQuery {
+public class IssueDao {
 
     private final DSLContext create;
 
-    public IssueQuery(DSLContext create) {
+    public IssueDao(DSLContext create) {
         this.create = create;
     }
 

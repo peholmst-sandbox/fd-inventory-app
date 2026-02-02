@@ -1,10 +1,8 @@
 package com.example.firestock.inventorycheck.query;
 
 import com.example.firestock.domain.primitives.ids.ApparatusId;
-import com.example.firestock.domain.primitives.ids.EquipmentItemId;
 import com.example.firestock.domain.primitives.strings.Barcode;
 import com.example.firestock.inventorycheck.dto.CheckableItem;
-import com.example.firestock.jooq.enums.EquipmentStatus;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Component;
 
@@ -13,7 +11,7 @@ import java.util.Optional;
 import static com.example.firestock.jooq.Tables.*;
 
 /**
- * Query class for equipment data access operations.
+ * Query class for equipment read operations.
  */
 @Component
 public class EquipmentQuery {
@@ -61,18 +59,5 @@ public class EquipmentQuery {
         // If not found, there's no barcode field on consumable_stock,
         // so we can only find equipment by barcode
         return Optional.empty();
-    }
-
-    /**
-     * Updates the status of an equipment item.
-     *
-     * @param id the equipment item ID
-     * @param status the new status
-     */
-    public void updateStatus(EquipmentItemId id, EquipmentStatus status) {
-        create.update(EQUIPMENT_ITEM)
-            .set(EQUIPMENT_ITEM.STATUS, status)
-            .where(EQUIPMENT_ITEM.ID.eq(id))
-            .execute();
     }
 }

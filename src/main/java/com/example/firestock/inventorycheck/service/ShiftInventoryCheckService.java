@@ -6,6 +6,10 @@ import com.example.firestock.domain.primitives.ids.IssueId;
 import com.example.firestock.domain.primitives.ids.StationId;
 import com.example.firestock.domain.primitives.ids.UserId;
 import com.example.firestock.domain.primitives.strings.Barcode;
+import com.example.firestock.inventorycheck.dao.EquipmentDao;
+import com.example.firestock.inventorycheck.dao.InventoryCheckDao;
+import com.example.firestock.inventorycheck.dao.InventoryCheckItemDao;
+import com.example.firestock.inventorycheck.dao.IssueDao;
 import com.example.firestock.inventorycheck.dto.ApparatusDetails;
 import com.example.firestock.inventorycheck.dto.ApparatusSummary;
 import com.example.firestock.inventorycheck.dto.CheckableItem;
@@ -15,7 +19,6 @@ import com.example.firestock.inventorycheck.query.ApparatusQuery;
 import com.example.firestock.inventorycheck.query.EquipmentQuery;
 import com.example.firestock.inventorycheck.query.InventoryCheckItemQuery;
 import com.example.firestock.inventorycheck.query.InventoryCheckQuery;
-import com.example.firestock.inventorycheck.query.IssueQuery;
 import com.example.firestock.jooq.enums.CheckStatus;
 import com.example.firestock.jooq.enums.EquipmentStatus;
 import com.example.firestock.jooq.enums.IssueCategory;
@@ -51,20 +54,29 @@ public class ShiftInventoryCheckService {
     private final ApparatusQuery apparatusQuery;
     private final InventoryCheckQuery inventoryCheckQuery;
     private final InventoryCheckItemQuery inventoryCheckItemQuery;
-    private final IssueQuery issueQuery;
     private final EquipmentQuery equipmentQuery;
+    private final InventoryCheckDao inventoryCheckDao;
+    private final InventoryCheckItemDao inventoryCheckItemDao;
+    private final EquipmentDao equipmentDao;
+    private final IssueDao issueDao;
 
     public ShiftInventoryCheckService(
             ApparatusQuery apparatusQuery,
             InventoryCheckQuery inventoryCheckQuery,
             InventoryCheckItemQuery inventoryCheckItemQuery,
-            IssueQuery issueQuery,
-            EquipmentQuery equipmentQuery) {
+            EquipmentQuery equipmentQuery,
+            InventoryCheckDao inventoryCheckDao,
+            InventoryCheckItemDao inventoryCheckItemDao,
+            EquipmentDao equipmentDao,
+            IssueDao issueDao) {
         this.apparatusQuery = apparatusQuery;
         this.inventoryCheckQuery = inventoryCheckQuery;
         this.inventoryCheckItemQuery = inventoryCheckItemQuery;
-        this.issueQuery = issueQuery;
         this.equipmentQuery = equipmentQuery;
+        this.inventoryCheckDao = inventoryCheckDao;
+        this.inventoryCheckItemDao = inventoryCheckItemDao;
+        this.equipmentDao = equipmentDao;
+        this.issueDao = issueDao;
     }
 
     /**
@@ -116,7 +128,7 @@ public class ShiftInventoryCheckService {
         int totalItems = apparatus.totalItemCount();
 
         // Create the check
-        InventoryCheckId checkId = inventoryCheckQuery.insert(
+        InventoryCheckId checkId = inventoryCheckDao.insert(
             apparatusId,
             apparatus.stationId(),
             performedBy,
@@ -215,14 +227,14 @@ public class ShiftInventoryCheckService {
         // Update equipment status if damaged or missing
         if (request.equipmentItemId() != null) {
             if (request.status() == VerificationStatus.MISSING) {
-                equipmentQuery.updateStatus(request.equipmentItemId(), EquipmentStatus.MISSING);
+                equipmentDao.updateStatus(request.equipmentItemId(), EquipmentStatus.MISSING);
             } else if (request.status() == VerificationStatus.PRESENT_DAMAGED) {
-                equipmentQuery.updateStatus(request.equipmentItemId(), EquipmentStatus.DAMAGED);
+                equipmentDao.updateStatus(request.equipmentItemId(), EquipmentStatus.DAMAGED);
             }
         }
 
         // Record the verification
-        inventoryCheckItemQuery.insert(
+        inventoryCheckItemDao.insert(
             request.checkId(),
             request.compartmentId(),
             request.equipmentItemId(),
@@ -237,7 +249,7 @@ public class ShiftInventoryCheckService {
 
         // Update check counts
         boolean hasIssue = issueId != null;
-        inventoryCheckQuery.incrementCounts(request.checkId(), hasIssue);
+        inventoryCheckDao.incrementCounts(request.checkId(), hasIssue);
     }
 
     private IssueId createIssueForVerification(ItemVerificationRequest request,
@@ -272,7 +284,7 @@ public class ShiftInventoryCheckService {
             request.conditionNotes() :
             "Issue automatically created during shift inventory check.";
 
-        return issueQuery.insert(
+        return issueDao.insert(
             request.equipmentItemId(),
             request.consumableStockId(),
             check.getApparatusId(),
@@ -312,7 +324,7 @@ public class ShiftInventoryCheckService {
                     verifiedCount, check.getTotalItems()));
         }
 
-        inventoryCheckQuery.markCompleted(checkId);
+        inventoryCheckDao.markCompleted(checkId);
 
         return inventoryCheckQuery.findById(checkId)
             .orElseThrow(() -> new IllegalStateException("Failed to retrieve completed check"));
@@ -332,7 +344,7 @@ public class ShiftInventoryCheckService {
             throw new IllegalArgumentException("Cannot abandon a check that is not in progress");
         }
 
-        inventoryCheckQuery.markAbandoned(checkId);
+        inventoryCheckDao.markAbandoned(checkId);
     }
 
     /**
