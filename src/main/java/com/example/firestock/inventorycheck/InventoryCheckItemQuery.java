@@ -1,4 +1,4 @@
-package com.example.firestock.inventorycheck.query;
+package com.example.firestock.inventorycheck;
 
 import com.example.firestock.domain.primitives.ids.ConsumableStockId;
 import com.example.firestock.domain.primitives.ids.EquipmentItemId;
@@ -12,11 +12,11 @@ import static com.example.firestock.jooq.Tables.INVENTORY_CHECK_ITEM;
  * Query class for inventory check item read operations.
  */
 @Component
-public class InventoryCheckItemQuery {
+class InventoryCheckItemQuery {
 
     private final DSLContext create;
 
-    public InventoryCheckItemQuery(DSLContext create) {
+    InventoryCheckItemQuery(DSLContext create) {
         this.create = create;
     }
 
@@ -26,7 +26,7 @@ public class InventoryCheckItemQuery {
      * @param checkId the inventory check ID
      * @return the count of verified items
      */
-    public int countByCheckId(InventoryCheckId checkId) {
+    int countByCheckId(InventoryCheckId checkId) {
         return create.fetchCount(INVENTORY_CHECK_ITEM,
             INVENTORY_CHECK_ITEM.INVENTORY_CHECK_ID.eq(checkId));
     }
@@ -39,7 +39,7 @@ public class InventoryCheckItemQuery {
      * @param consumableStockId the consumable stock ID, or null
      * @return true if already verified
      */
-    public boolean existsForItem(InventoryCheckId checkId, EquipmentItemId equipmentItemId,
+    boolean existsForItem(InventoryCheckId checkId, EquipmentItemId equipmentItemId,
                                   ConsumableStockId consumableStockId) {
         var condition = INVENTORY_CHECK_ITEM.INVENTORY_CHECK_ID.eq(checkId);
 

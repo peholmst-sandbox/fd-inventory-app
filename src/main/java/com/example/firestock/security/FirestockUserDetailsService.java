@@ -10,12 +10,12 @@ import org.springframework.stereotype.Service;
  * UserDetailsService implementation that loads users from the FireStock database.
  */
 @Service
-public class FirestockUserDetailsService implements UserDetailsService {
+class FirestockUserDetailsService implements UserDetailsService {
 
     private final UserQuery userQuery;
     private final UserDao userDao;
 
-    public FirestockUserDetailsService(UserQuery userQuery, UserDao userDao) {
+    FirestockUserDetailsService(UserQuery userQuery, UserDao userDao) {
         this.userQuery = userQuery;
         this.userDao = userDao;
     }
@@ -38,7 +38,7 @@ public class FirestockUserDetailsService implements UserDetailsService {
      *
      * @param userDetails the authenticated user
      */
-    public void recordSuccessfulLogin(FirestockUserDetails userDetails) {
+    void recordSuccessfulLogin(FirestockUserDetails userDetails) {
         userDao.updateLastLogin(userDetails.getUserId());
     }
 }

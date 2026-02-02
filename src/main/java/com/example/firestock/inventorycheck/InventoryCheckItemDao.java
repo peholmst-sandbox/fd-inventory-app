@@ -1,4 +1,4 @@
-package com.example.firestock.inventorycheck.dao;
+package com.example.firestock.inventorycheck;
 
 import com.example.firestock.domain.primitives.ids.CompartmentId;
 import com.example.firestock.domain.primitives.ids.ConsumableStockId;
@@ -19,11 +19,11 @@ import static com.example.firestock.jooq.Tables.INVENTORY_CHECK_ITEM;
  * DAO class for inventory check item write operations.
  */
 @Component
-public class InventoryCheckItemDao {
+class InventoryCheckItemDao {
 
     private final DSLContext create;
 
-    public InventoryCheckItemDao(DSLContext create) {
+    InventoryCheckItemDao(DSLContext create) {
         this.create = create;
     }
 
@@ -42,7 +42,7 @@ public class InventoryCheckItemDao {
      * @param issueId the created issue ID, if any
      * @return the ID of the created verification record
      */
-    public InventoryCheckItemId insert(
+    InventoryCheckItemId insert(
             InventoryCheckId checkId,
             CompartmentId compartmentId,
             EquipmentItemId equipmentItemId,

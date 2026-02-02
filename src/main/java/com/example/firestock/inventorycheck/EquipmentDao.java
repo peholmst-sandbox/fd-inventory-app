@@ -1,4 +1,4 @@
-package com.example.firestock.inventorycheck.dao;
+package com.example.firestock.inventorycheck;
 
 import com.example.firestock.domain.primitives.ids.EquipmentItemId;
 import com.example.firestock.jooq.enums.EquipmentStatus;
@@ -11,11 +11,11 @@ import static com.example.firestock.jooq.Tables.EQUIPMENT_ITEM;
  * DAO class for equipment write operations.
  */
 @Component
-public class EquipmentDao {
+class EquipmentDao {
 
     private final DSLContext create;
 
-    public EquipmentDao(DSLContext create) {
+    EquipmentDao(DSLContext create) {
         this.create = create;
     }
 
@@ -25,7 +25,7 @@ public class EquipmentDao {
      * @param id the equipment item ID
      * @param status the new status
      */
-    public void updateStatus(EquipmentItemId id, EquipmentStatus status) {
+    void updateStatus(EquipmentItemId id, EquipmentStatus status) {
         create.update(EQUIPMENT_ITEM)
             .set(EQUIPMENT_ITEM.STATUS, status)
             .where(EQUIPMENT_ITEM.ID.eq(id))

@@ -16,11 +16,11 @@ import static com.example.firestock.jooq.Tables.APP_USER;
  * DAO class for user write operations.
  */
 @Component
-public class UserDao {
+class UserDao {
 
     private final DSLContext create;
 
-    public UserDao(DSLContext create) {
+    UserDao(DSLContext create) {
         this.create = create;
     }
 
@@ -35,7 +35,7 @@ public class UserDao {
      * @param role the user's role
      * @return the ID of the newly created user
      */
-    public UserId insert(EmailAddress email, String passwordHash, String firstName,
+    UserId insert(EmailAddress email, String passwordHash, String firstName,
                          String lastName, BadgeNumber badgeNumber, UserRole role) {
         AppUserRecord record = create.newRecord(APP_USER);
         record.setEmail(email);
@@ -54,7 +54,7 @@ public class UserDao {
      *
      * @param userId the user ID
      */
-    public void updateLastLogin(UserId userId) {
+    void updateLastLogin(UserId userId) {
         create.update(APP_USER)
             .set(APP_USER.LAST_LOGIN_AT, LocalDateTime.now())
             .set(APP_USER.UPDATED_AT, LocalDateTime.now())

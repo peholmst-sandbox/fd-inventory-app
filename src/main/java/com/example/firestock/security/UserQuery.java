@@ -17,11 +17,11 @@ import static com.example.firestock.jooq.Tables.USER_STATION_ASSIGNMENT;
  * Query class for user-related read operations for authentication.
  */
 @Component
-public class UserQuery {
+class UserQuery {
 
     private final DSLContext create;
 
-    public UserQuery(DSLContext create) {
+    UserQuery(DSLContext create) {
         this.create = create;
     }
 
@@ -32,7 +32,7 @@ public class UserQuery {
      * @param email the email address to search for
      * @return the user details if found
      */
-    public Optional<FirestockUserDetails> findByEmail(EmailAddress email) {
+    Optional<FirestockUserDetails> findByEmail(EmailAddress email) {
         return create.select(
                 APP_USER.ID,
                 APP_USER.EMAIL,
@@ -84,7 +84,7 @@ public class UserQuery {
      * @param email the email address to check
      * @return true if a user exists with this email
      */
-    public boolean existsByEmail(EmailAddress email) {
+    boolean existsByEmail(EmailAddress email) {
         return create.fetchExists(
             create.selectOne()
                 .from(APP_USER)

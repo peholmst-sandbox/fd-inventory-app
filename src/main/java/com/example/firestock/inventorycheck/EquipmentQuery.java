@@ -1,8 +1,7 @@
-package com.example.firestock.inventorycheck.query;
+package com.example.firestock.inventorycheck;
 
 import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.strings.Barcode;
-import com.example.firestock.inventorycheck.dto.CheckableItem;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Component;
 
@@ -14,11 +13,11 @@ import static com.example.firestock.jooq.Tables.*;
  * Query class for equipment read operations.
  */
 @Component
-public class EquipmentQuery {
+class EquipmentQuery {
 
     private final DSLContext create;
 
-    public EquipmentQuery(DSLContext create) {
+    EquipmentQuery(DSLContext create) {
         this.create = create;
     }
 
@@ -31,7 +30,7 @@ public class EquipmentQuery {
      * @param apparatusId the apparatus to search within
      * @return the checkable item, or empty if not found
      */
-    public Optional<CheckableItem> findByBarcode(Barcode barcode, ApparatusId apparatusId) {
+    Optional<CheckableItem> findByBarcode(Barcode barcode, ApparatusId apparatusId) {
         // First, try to find an equipment item with this barcode
         var equipment = create.select(
                 EQUIPMENT_ITEM.ID,

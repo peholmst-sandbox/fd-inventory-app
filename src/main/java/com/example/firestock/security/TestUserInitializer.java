@@ -21,7 +21,7 @@ import static com.example.firestock.jooq.Tables.USER_STATION_ASSIGNMENT;
  * Only runs when firestock.security.create-test-users=true.
  */
 @Component
-public class TestUserInitializer implements ApplicationRunner {
+class TestUserInitializer implements ApplicationRunner {
 
     private static final Logger LOG = LoggerFactory.getLogger(TestUserInitializer.class);
 
@@ -31,7 +31,7 @@ public class TestUserInitializer implements ApplicationRunner {
     private final PasswordEncoder passwordEncoder;
     private final DSLContext create;
 
-    public TestUserInitializer(SecurityProperties securityProperties, UserQuery userQuery,
+    TestUserInitializer(SecurityProperties securityProperties, UserQuery userQuery,
                                 UserDao userDao, PasswordEncoder passwordEncoder, DSLContext create) {
         this.securityProperties = securityProperties;
         this.userQuery = userQuery;

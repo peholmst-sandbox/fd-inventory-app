@@ -1,4 +1,4 @@
-package com.example.firestock.inventorycheck.service;
+package com.example.firestock.inventorycheck;
 
 import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.InventoryCheckId;
@@ -6,19 +6,6 @@ import com.example.firestock.domain.primitives.ids.IssueId;
 import com.example.firestock.domain.primitives.ids.StationId;
 import com.example.firestock.domain.primitives.ids.UserId;
 import com.example.firestock.domain.primitives.strings.Barcode;
-import com.example.firestock.inventorycheck.dao.EquipmentDao;
-import com.example.firestock.inventorycheck.dao.InventoryCheckDao;
-import com.example.firestock.inventorycheck.dao.InventoryCheckItemDao;
-import com.example.firestock.inventorycheck.dao.IssueDao;
-import com.example.firestock.inventorycheck.dto.ApparatusDetails;
-import com.example.firestock.inventorycheck.dto.ApparatusSummary;
-import com.example.firestock.inventorycheck.dto.CheckableItem;
-import com.example.firestock.inventorycheck.dto.InventoryCheckSummary;
-import com.example.firestock.inventorycheck.dto.ItemVerificationRequest;
-import com.example.firestock.inventorycheck.query.ApparatusQuery;
-import com.example.firestock.inventorycheck.query.EquipmentQuery;
-import com.example.firestock.inventorycheck.query.InventoryCheckItemQuery;
-import com.example.firestock.inventorycheck.query.InventoryCheckQuery;
 import com.example.firestock.jooq.enums.CheckStatus;
 import com.example.firestock.jooq.enums.EquipmentStatus;
 import com.example.firestock.jooq.enums.IssueCategory;
