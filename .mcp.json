@@ -11,7 +11,9 @@
     "playwright": {
       "command": "npx",
       "args": [
-        "@playwright/mcp@latest"
+        "@playwright/mcp@latest",
+        "--browser", "chromium",
+        "--executable-path", "/usr/bin/chromium-browser"
       ]
     },
     "spring-docs": {
