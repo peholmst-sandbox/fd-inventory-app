@@ -1,20 +1,12 @@
 package com.example.firestock.infrastructure.persistence.mapper;
 
-import com.example.firestock.domain.audit.AuditItemStatus;
 import com.example.firestock.domain.audit.AuditedItemTarget;
 import com.example.firestock.domain.audit.ConsumableTarget;
 import com.example.firestock.domain.audit.EquipmentTarget;
-import com.example.firestock.domain.audit.ExpiryStatus;
 import com.example.firestock.domain.audit.FormalAuditItem;
-import com.example.firestock.domain.audit.ItemCondition;
 import com.example.firestock.domain.audit.QuantityComparison;
-import com.example.firestock.domain.audit.TestResult;
 import com.example.firestock.jooq.tables.records.FormalAuditItemRecord;
 import org.springframework.stereotype.Component;
-
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 
 /**
  * Mapper for converting between {@link FormalAuditItem} domain objects and
@@ -24,8 +16,6 @@ import java.time.ZoneId;
  */
 @Component
 public class FormalAuditItemMapper {
-
-    private static final ZoneId SYSTEM_ZONE = ZoneId.systemDefault();
 
     /**
      * Converts a jOOQ record to the domain FormalAuditItem.
@@ -48,14 +38,14 @@ public class FormalAuditItemMapper {
                 record.getCompartmentId(),
                 record.getManifestEntryId(),
                 Boolean.TRUE.equals(record.getIsUnexpected()),
-                toDomainStatus(record.getAuditItemStatus()),
-                toDomainCondition(record.getItemCondition()),
-                toDomainTestResult(record.getTestResult()),
-                toDomainExpiryStatus(record.getExpiryStatus()),
+                record.getAuditItemStatus(),
+                record.getItemCondition(),
+                record.getTestResult(),
+                record.getExpiryStatus(),
                 quantityComparison,
                 record.getConditionNotes(),
                 record.getTestNotes(),
-                toInstant(record.getAuditedAt())
+                record.getAuditedAt()
         );
     }
 
@@ -71,13 +61,13 @@ public class FormalAuditItemMapper {
         record.setCompartmentId(item.compartmentId());
         record.setManifestEntryId(item.manifestEntryId());
         record.setIsUnexpected(item.isUnexpected());
-        record.setAuditItemStatus(toJooqStatus(item.status()));
-        record.setItemCondition(toJooqCondition(item.condition()));
-        record.setTestResult(toJooqTestResult(item.testResult()));
-        record.setExpiryStatus(toJooqExpiryStatus(item.expiryStatus()));
+        record.setAuditItemStatus(item.status());
+        record.setItemCondition(item.condition());
+        record.setTestResult(item.testResult());
+        record.setExpiryStatus(item.expiryStatus());
         record.setConditionNotes(item.conditionNotes());
         record.setTestNotes(item.testNotes());
-        record.setAuditedAt(toLocalDateTime(item.auditedAt()));
+        record.setAuditedAt(item.auditedAt());
 
         // Set target fields (XOR - only one should be set)
         switch (item.target()) {
@@ -146,65 +136,5 @@ public class FormalAuditItemMapper {
         }
 
         return null;
-    }
-
-    // ========================================================================
-    // Status Enum Conversions
-    // ========================================================================
-
-    public com.example.firestock.jooq.enums.AuditItemStatus toJooqStatus(AuditItemStatus status) {
-        return com.example.firestock.jooq.enums.AuditItemStatus.valueOf(status.name());
-    }
-
-    public AuditItemStatus toDomainStatus(com.example.firestock.jooq.enums.AuditItemStatus status) {
-        return AuditItemStatus.valueOf(status.name());
-    }
-
-    // ========================================================================
-    // Condition Enum Conversions
-    // ========================================================================
-
-    public com.example.firestock.jooq.enums.ItemCondition toJooqCondition(ItemCondition condition) {
-        return condition == null ? null : com.example.firestock.jooq.enums.ItemCondition.valueOf(condition.name());
-    }
-
-    public ItemCondition toDomainCondition(com.example.firestock.jooq.enums.ItemCondition condition) {
-        return condition == null ? null : ItemCondition.valueOf(condition.name());
-    }
-
-    // ========================================================================
-    // TestResult Enum Conversions
-    // ========================================================================
-
-    public com.example.firestock.jooq.enums.TestResult toJooqTestResult(TestResult testResult) {
-        return testResult == null ? null : com.example.firestock.jooq.enums.TestResult.valueOf(testResult.name());
-    }
-
-    public TestResult toDomainTestResult(com.example.firestock.jooq.enums.TestResult testResult) {
-        return testResult == null ? null : TestResult.valueOf(testResult.name());
-    }
-
-    // ========================================================================
-    // ExpiryStatus Enum Conversions
-    // ========================================================================
-
-    public com.example.firestock.jooq.enums.ExpiryStatus toJooqExpiryStatus(ExpiryStatus expiryStatus) {
-        return expiryStatus == null ? null : com.example.firestock.jooq.enums.ExpiryStatus.valueOf(expiryStatus.name());
-    }
-
-    public ExpiryStatus toDomainExpiryStatus(com.example.firestock.jooq.enums.ExpiryStatus expiryStatus) {
-        return expiryStatus == null ? null : ExpiryStatus.valueOf(expiryStatus.name());
-    }
-
-    // ========================================================================
-    // Timestamp Conversions
-    // ========================================================================
-
-    public Instant toInstant(LocalDateTime ldt) {
-        return ldt == null ? null : ldt.atZone(SYSTEM_ZONE).toInstant();
-    }
-
-    public LocalDateTime toLocalDateTime(Instant instant) {
-        return instant == null ? null : LocalDateTime.ofInstant(instant, SYSTEM_ZONE);
     }
 }

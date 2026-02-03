@@ -6,7 +6,7 @@ import com.example.firestock.jooq.enums.IssueCategory;
 import com.example.firestock.jooq.enums.IssueSeverity;
 import com.example.firestock.jooq.enums.IssueStatus;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * Summary of an issue for display in lists.
@@ -26,7 +26,7 @@ public record IssueSummary(
         IssueCategory category,
         IssueSeverity severity,
         IssueStatus status,
-        LocalDateTime reportedAt
+        Instant reportedAt
 ) {
     /**
      * Returns a display-friendly status label.

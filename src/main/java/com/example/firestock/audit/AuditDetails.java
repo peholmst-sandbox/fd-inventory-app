@@ -6,7 +6,7 @@ import com.example.firestock.domain.primitives.ids.StationId;
 import com.example.firestock.domain.primitives.strings.UnitNumber;
 import com.example.firestock.jooq.enums.AuditStatus;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -33,9 +33,9 @@ public record AuditDetails(
         StationId stationId,
         UnitNumber unitNumber,
         AuditStatus status,
-        LocalDateTime startedAt,
-        LocalDateTime completedAt,
-        LocalDateTime pausedAt,
+        Instant startedAt,
+        Instant completedAt,
+        Instant pausedAt,
         int totalItems,
         int auditedCount,
         int issuesFoundCount,

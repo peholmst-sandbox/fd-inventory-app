@@ -9,7 +9,7 @@ import com.example.firestock.jooq.tables.records.InventoryCheckRecord;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import static com.example.firestock.jooq.Tables.INVENTORY_CHECK;
 
@@ -62,7 +62,7 @@ class InventoryCheckDao {
             .set(INVENTORY_CHECK.STATUS, status)
             .set(INVENTORY_CHECK.VERIFIED_COUNT, verifiedCount)
             .set(INVENTORY_CHECK.ISSUES_FOUND_COUNT, issuesFoundCount)
-            .set(INVENTORY_CHECK.UPDATED_AT, LocalDateTime.now())
+            .set(INVENTORY_CHECK.UPDATED_AT, Instant.now())
             .where(INVENTORY_CHECK.ID.eq(id))
             .execute();
     }
@@ -75,8 +75,8 @@ class InventoryCheckDao {
     void markCompleted(InventoryCheckId id) {
         create.update(INVENTORY_CHECK)
             .set(INVENTORY_CHECK.STATUS, CheckStatus.COMPLETED)
-            .set(INVENTORY_CHECK.COMPLETED_AT, LocalDateTime.now())
-            .set(INVENTORY_CHECK.UPDATED_AT, LocalDateTime.now())
+            .set(INVENTORY_CHECK.COMPLETED_AT, Instant.now())
+            .set(INVENTORY_CHECK.UPDATED_AT, Instant.now())
             .where(INVENTORY_CHECK.ID.eq(id))
             .execute();
     }
@@ -89,8 +89,8 @@ class InventoryCheckDao {
     void markAbandoned(InventoryCheckId id) {
         create.update(INVENTORY_CHECK)
             .set(INVENTORY_CHECK.STATUS, CheckStatus.ABANDONED)
-            .set(INVENTORY_CHECK.ABANDONED_AT, LocalDateTime.now())
-            .set(INVENTORY_CHECK.UPDATED_AT, LocalDateTime.now())
+            .set(INVENTORY_CHECK.ABANDONED_AT, Instant.now())
+            .set(INVENTORY_CHECK.UPDATED_AT, Instant.now())
             .where(INVENTORY_CHECK.ID.eq(id))
             .execute();
     }
@@ -104,7 +104,7 @@ class InventoryCheckDao {
     void incrementCounts(InventoryCheckId id, boolean hasIssue) {
         var update = create.update(INVENTORY_CHECK)
             .set(INVENTORY_CHECK.VERIFIED_COUNT, INVENTORY_CHECK.VERIFIED_COUNT.plus(1))
-            .set(INVENTORY_CHECK.UPDATED_AT, LocalDateTime.now());
+            .set(INVENTORY_CHECK.UPDATED_AT, Instant.now());
 
         if (hasIssue) {
             update = update.set(INVENTORY_CHECK.ISSUES_FOUND_COUNT, INVENTORY_CHECK.ISSUES_FOUND_COUNT.plus(1));

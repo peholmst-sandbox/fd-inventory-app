@@ -4,7 +4,7 @@ import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.InventoryCheckId;
 import com.example.firestock.jooq.enums.CheckStatus;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * Summary information about an inventory check.
@@ -22,8 +22,8 @@ public record InventoryCheckSummary(
     InventoryCheckId id,
     ApparatusId apparatusId,
     CheckStatus status,
-    LocalDateTime startedAt,
-    LocalDateTime completedAt,
+    Instant startedAt,
+    Instant completedAt,
     int totalItems,
     int verifiedCount,
     int issuesFoundCount

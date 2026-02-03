@@ -13,7 +13,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 import static com.example.firestock.jooq.Tables.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -86,7 +87,7 @@ class ApparatusQueryTest {
             .set(COMPARTMENT.APPARATUS_ID, testApparatusId)
             .set(COMPARTMENT.CODE, "L1")
             .set(COMPARTMENT.NAME, "Left Compartment 1")
-            .set(COMPARTMENT.LOCATION, CompartmentLocation.LEFT_SIDE)
+            .set(COMPARTMENT.LOCATION, CompartmentLocation.DRIVER_SIDE)
             .set(COMPARTMENT.DISPLAY_ORDER, 1)
             .execute();
 
@@ -105,7 +106,7 @@ class ApparatusQueryTest {
     void findByStationId_returnsApparatusWithLastCheckDate() {
         // Insert a completed inventory check
         var checkId = InventoryCheckId.generate();
-        var completedAt = LocalDateTime.now().minusDays(1);
+        var completedAt = Instant.now().minus(1, ChronoUnit.DAYS);
         create.insertInto(INVENTORY_CHECK)
             .set(INVENTORY_CHECK.ID, checkId)
             .set(INVENTORY_CHECK.APPARATUS_ID, testApparatusId)
@@ -213,7 +214,7 @@ class ApparatusQueryTest {
             .set(COMPARTMENT.APPARATUS_ID, testApparatusId)
             .set(COMPARTMENT.CODE, "R1")
             .set(COMPARTMENT.NAME, "Right Compartment 1")
-            .set(COMPARTMENT.LOCATION, CompartmentLocation.RIGHT_SIDE)
+            .set(COMPARTMENT.LOCATION, CompartmentLocation.PASSENGER_SIDE)
             .set(COMPARTMENT.DISPLAY_ORDER, 0) // Earlier than L1
             .execute();
 
@@ -251,7 +252,7 @@ class ApparatusQueryTest {
             .set(COMPARTMENT.APPARATUS_ID, testApparatusId)
             .set(COMPARTMENT.CODE, "R1")
             .set(COMPARTMENT.NAME, "Right Compartment 1")
-            .set(COMPARTMENT.LOCATION, CompartmentLocation.RIGHT_SIDE)
+            .set(COMPARTMENT.LOCATION, CompartmentLocation.PASSENGER_SIDE)
             .set(COMPARTMENT.DISPLAY_ORDER, 2)
             .execute();
 

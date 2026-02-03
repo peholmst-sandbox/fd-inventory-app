@@ -8,7 +8,7 @@ import com.example.firestock.jooq.tables.records.AppUserRecord;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import static com.example.firestock.jooq.Tables.APP_USER;
 
@@ -56,8 +56,8 @@ class UserDao {
      */
     void updateLastLogin(UserId userId) {
         create.update(APP_USER)
-            .set(APP_USER.LAST_LOGIN_AT, LocalDateTime.now())
-            .set(APP_USER.UPDATED_AT, LocalDateTime.now())
+            .set(APP_USER.LAST_LOGIN_AT, Instant.now())
+            .set(APP_USER.UPDATED_AT, Instant.now())
             .where(APP_USER.ID.eq(userId))
             .execute();
     }

@@ -1,5 +1,6 @@
 package com.example.firestock.domain.apparatus;
 
+import com.example.firestock.jooq.enums.ApparatusType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -19,12 +20,10 @@ class ApparatusTypeTest {
                         ApparatusType.LADDER,
                         ApparatusType.RESCUE,
                         ApparatusType.TANKER,
-                        ApparatusType.BRUSH,
                         ApparatusType.AMBULANCE,
                         ApparatusType.COMMAND,
-                        ApparatusType.SUPPORT,
-                        ApparatusType.HAZMAT,
-                        ApparatusType.BOAT
+                        ApparatusType.UTILITY,
+                        ApparatusType.OTHER
                 );
     }
 

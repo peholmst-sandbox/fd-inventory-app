@@ -3,6 +3,8 @@ package com.example.firestock.domain.apparatus;
 import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.StationId;
 import com.example.firestock.domain.primitives.strings.UnitNumber;
+import com.example.firestock.jooq.enums.ApparatusStatus;
+import com.example.firestock.jooq.enums.ApparatusType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

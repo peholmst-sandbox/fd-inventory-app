@@ -3,6 +3,7 @@ package com.example.firestock.domain.audit;
 import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.FormalAuditId;
 import com.example.firestock.domain.primitives.ids.UserId;
+import com.example.firestock.jooq.enums.AuditStatus;
 
 import java.time.Duration;
 import java.time.Instant;

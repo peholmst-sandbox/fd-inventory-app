@@ -18,6 +18,8 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.RolesAllowed;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -113,7 +115,7 @@ public class AuditApparatusSelectionView extends VerticalLayout {
         lastAuditLabel.addClassName("text-secondary");
 
         String lastAuditDateText = apparatus.lastAuditDate() != null
-                ? apparatus.lastAuditDate().format(DATE_FORMATTER)
+                ? LocalDateTime.ofInstant(apparatus.lastAuditDate(), ZoneId.systemDefault()).format(DATE_FORMATTER)
                 : "Never";
         Span lastAuditDate = new Span(lastAuditDateText);
         lastAuditDate.addClassName("last-audit-date");

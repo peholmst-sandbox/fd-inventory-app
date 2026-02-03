@@ -1,8 +1,6 @@
 package com.example.firestock.infrastructure.persistence.mapper;
 
 import com.example.firestock.domain.apparatus.Apparatus;
-import com.example.firestock.domain.apparatus.ApparatusStatus;
-import com.example.firestock.domain.apparatus.ApparatusType;
 import com.example.firestock.domain.apparatus.DecommissionedApparatus;
 import com.example.firestock.domain.apparatus.InServiceApparatus;
 import com.example.firestock.domain.apparatus.OutOfServiceApparatus;
@@ -32,7 +30,7 @@ public class ApparatusMapper {
             return null;
         }
 
-        var status = toDomainStatus(record.getStatus());
+        var status = record.getStatus();
         var year = record.getYear() != null ? Year.of(record.getYear()) : null;
 
         return switch (status) {
@@ -40,7 +38,7 @@ public class ApparatusMapper {
                     record.getId(),
                     record.getUnitNumber(),
                     record.getVin(),
-                    toDomainType(record.getType()),
+                    record.getType(),
                     record.getMake(),
                     record.getModel(),
                     year,
@@ -52,7 +50,7 @@ public class ApparatusMapper {
                     record.getId(),
                     record.getUnitNumber(),
                     record.getVin(),
-                    toDomainType(record.getType()),
+                    record.getType(),
                     record.getMake(),
                     record.getModel(),
                     year,
@@ -64,7 +62,7 @@ public class ApparatusMapper {
                     record.getId(),
                     record.getUnitNumber(),
                     record.getVin(),
-                    toDomainType(record.getType()),
+                    record.getType(),
                     record.getMake(),
                     record.getModel(),
                     year,
@@ -76,7 +74,7 @@ public class ApparatusMapper {
                     record.getId(),
                     record.getUnitNumber(),
                     record.getVin(),
-                    toDomainType(record.getType()),
+                    record.getType(),
                     record.getMake(),
                     record.getModel(),
                     year,
@@ -97,53 +95,13 @@ public class ApparatusMapper {
         record.setId(apparatus.id());
         record.setUnitNumber(apparatus.unitNumber());
         record.setVin(apparatus.vin());
-        record.setType(toJooqType(apparatus.type()));
+        record.setType(apparatus.type());
         record.setMake(apparatus.make());
         record.setModel(apparatus.model());
         record.setYear(apparatus.year() != null ? apparatus.year().getValue() : null);
         record.setStationId(apparatus.stationId());
-        record.setStatus(toJooqStatus(apparatus.status()));
+        record.setStatus(apparatus.status());
         record.setBarcode(apparatus.barcode());
         record.setNotes(apparatus.notes());
-    }
-
-    /**
-     * Converts a domain ApparatusStatus to the jOOQ enum.
-     *
-     * @param status the domain status
-     * @return the jOOQ status enum
-     */
-    public com.example.firestock.jooq.enums.ApparatusStatus toJooqStatus(ApparatusStatus status) {
-        return com.example.firestock.jooq.enums.ApparatusStatus.valueOf(status.name());
-    }
-
-    /**
-     * Converts a jOOQ ApparatusStatus enum to the domain enum.
-     *
-     * @param status the jOOQ status enum
-     * @return the domain status
-     */
-    public ApparatusStatus toDomainStatus(com.example.firestock.jooq.enums.ApparatusStatus status) {
-        return ApparatusStatus.valueOf(status.name());
-    }
-
-    /**
-     * Converts a domain ApparatusType to the jOOQ enum.
-     *
-     * @param type the domain type
-     * @return the jOOQ type enum
-     */
-    public com.example.firestock.jooq.enums.ApparatusType toJooqType(ApparatusType type) {
-        return com.example.firestock.jooq.enums.ApparatusType.valueOf(type.name());
-    }
-
-    /**
-     * Converts a jOOQ ApparatusType enum to the domain enum.
-     *
-     * @param type the jOOQ type enum
-     * @return the domain type
-     */
-    public ApparatusType toDomainType(com.example.firestock.jooq.enums.ApparatusType type) {
-        return ApparatusType.valueOf(type.name());
     }
 }

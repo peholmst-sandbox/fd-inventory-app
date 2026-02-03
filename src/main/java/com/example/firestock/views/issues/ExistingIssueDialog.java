@@ -15,6 +15,8 @@ import com.vaadin.flow.component.radiobutton.RadioGroupVariant;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -143,7 +145,7 @@ class ExistingIssueDialog extends Dialog {
         Span categorySpan = new Span(issue.categoryLabel());
         categorySpan.addClassName("issue-category");
 
-        Span dateSpan = new Span("Reported: " + issue.reportedAt().format(DATE_FORMATTER));
+        Span dateSpan = new Span("Reported: " + LocalDateTime.ofInstant(issue.reportedAt(), ZoneId.systemDefault()).format(DATE_FORMATTER));
         dateSpan.addClassName("issue-date");
 
         Span statusSpan = new Span(issue.statusLabel());

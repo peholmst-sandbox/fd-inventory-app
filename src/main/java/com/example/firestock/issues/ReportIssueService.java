@@ -199,13 +199,13 @@ public class ReportIssueService {
                 .orElseThrow(() -> new IssueNotFoundException("Issue not found: " + issueId));
 
         // Append the notes to the existing description
-        String timestamp = java.time.LocalDateTime.now().toString();
+        String timestamp = java.time.Instant.now().toString();
         String additionalNotes = String.format("\n\n--- Additional notes (%s) ---\n%s", timestamp, notes);
 
         create.update(com.example.firestock.jooq.Tables.ISSUE)
                 .set(com.example.firestock.jooq.Tables.ISSUE.DESCRIPTION,
                         com.example.firestock.jooq.Tables.ISSUE.DESCRIPTION.concat(additionalNotes))
-                .set(com.example.firestock.jooq.Tables.ISSUE.UPDATED_AT, java.time.LocalDateTime.now())
+                .set(com.example.firestock.jooq.Tables.ISSUE.UPDATED_AT, java.time.Instant.now())
                 .where(com.example.firestock.jooq.Tables.ISSUE.ID.eq(issueId))
                 .execute();
     }

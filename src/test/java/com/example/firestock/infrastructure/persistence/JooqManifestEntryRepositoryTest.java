@@ -2,7 +2,7 @@ package com.example.firestock.infrastructure.persistence;
 
 import com.example.firestock.TestcontainersConfiguration;
 import com.example.firestock.domain.manifest.ManifestEntry;
-import com.example.firestock.domain.manifest.ManifestEntryRepository;
+import com.example.firestock.infrastructure.persistence.ManifestEntryRepository;
 import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.CompartmentId;
 import com.example.firestock.domain.primitives.ids.EquipmentTypeId;
@@ -98,7 +98,7 @@ class JooqManifestEntryRepositoryTest {
                 .set(COMPARTMENT.APPARATUS_ID, testApparatusId)
                 .set(COMPARTMENT.CODE, "D1")
                 .set(COMPARTMENT.NAME, "Driver Side 1")
-                .set(COMPARTMENT.LOCATION, CompartmentLocation.LEFT_SIDE)
+                .set(COMPARTMENT.LOCATION, CompartmentLocation.DRIVER_SIDE)
                 .set(COMPARTMENT.DISPLAY_ORDER, 1)
                 .execute();
 
@@ -108,7 +108,7 @@ class JooqManifestEntryRepositoryTest {
                 .set(COMPARTMENT.APPARATUS_ID, testApparatusId)
                 .set(COMPARTMENT.CODE, "P1")
                 .set(COMPARTMENT.NAME, "Passenger Side 1")
-                .set(COMPARTMENT.LOCATION, CompartmentLocation.RIGHT_SIDE)
+                .set(COMPARTMENT.LOCATION, CompartmentLocation.PASSENGER_SIDE)
                 .set(COMPARTMENT.DISPLAY_ORDER, 2)
                 .execute();
 

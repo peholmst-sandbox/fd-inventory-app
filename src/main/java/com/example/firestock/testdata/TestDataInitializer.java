@@ -214,8 +214,8 @@ class TestDataInitializer implements ApplicationRunner {
         LOG.info("Created apparatus: {}", unitNumber);
 
         // Create compartments
-        CompartmentId leftSide = createCompartment(apparatusId, "L1", "Left Side - Front", CompartmentLocation.LEFT_SIDE, 1);
-        CompartmentId rightSide = createCompartment(apparatusId, "R1", "Right Side - Front", CompartmentLocation.RIGHT_SIDE, 2);
+        CompartmentId leftSide = createCompartment(apparatusId, "L1", "Left Side - Front", CompartmentLocation.DRIVER_SIDE, 1);
+        CompartmentId rightSide = createCompartment(apparatusId, "R1", "Right Side - Front", CompartmentLocation.PASSENGER_SIDE, 2);
         CompartmentId rear = createCompartment(apparatusId, "REAR", "Rear Compartment", CompartmentLocation.REAR, 3);
         CompartmentId top = createCompartment(apparatusId, "TOP", "Top / Ladder Rack", CompartmentLocation.TOP, 4);
         CompartmentId interior = createCompartment(apparatusId, "CAB", "Cab Interior", CompartmentLocation.INTERIOR, 5);

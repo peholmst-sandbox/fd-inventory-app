@@ -2,8 +2,8 @@ package com.example.firestock.infrastructure.persistence;
 
 import com.example.firestock.TestcontainersConfiguration;
 import com.example.firestock.domain.apparatus.Compartment;
-import com.example.firestock.domain.apparatus.CompartmentLocation;
-import com.example.firestock.domain.apparatus.CompartmentRepository;
+import com.example.firestock.jooq.enums.CompartmentLocation;
+import com.example.firestock.infrastructure.persistence.CompartmentRepository;
 import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.CompartmentId;
 import com.example.firestock.domain.primitives.ids.StationId;
