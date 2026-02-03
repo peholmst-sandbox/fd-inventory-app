@@ -309,6 +309,47 @@ class FormalAuditQuery {
     }
 
     /**
+     * Gets apparatus list with last audit dates for all stations.
+     * Used by maintenance technicians who have cross-station access.
+     */
+    List<ApparatusAuditInfo> findAllApparatusWithAuditInfo() {
+        // Subquery for last completed audit date
+        var lastAuditSubquery = DSL.select(DSL.max(FORMAL_AUDIT.COMPLETED_AT))
+                .from(FORMAL_AUDIT)
+                .where(FORMAL_AUDIT.APPARATUS_ID.eq(APPARATUS.ID))
+                .and(FORMAL_AUDIT.STATUS.eq(AuditStatus.COMPLETED));
+
+        // Check for active audit
+        var activeAuditSubquery = DSL.select(FORMAL_AUDIT.ID)
+                .from(FORMAL_AUDIT)
+                .where(FORMAL_AUDIT.APPARATUS_ID.eq(APPARATUS.ID))
+                .and(FORMAL_AUDIT.STATUS.eq(AuditStatus.IN_PROGRESS));
+
+        return create
+                .select(
+                        APPARATUS.ID,
+                        APPARATUS.UNIT_NUMBER,
+                        APPARATUS.TYPE,
+                        STATION.NAME.as("station_name"),
+                        lastAuditSubquery.asField("last_audit_date"),
+                        DSL.exists(activeAuditSubquery).as("has_active_audit")
+                )
+                .from(APPARATUS)
+                .join(STATION).on(STATION.ID.eq(APPARATUS.STATION_ID))
+                .where(APPARATUS.STATUS.eq(com.example.firestock.jooq.enums.ApparatusStatus.IN_SERVICE))
+                .orderBy(STATION.NAME, APPARATUS.UNIT_NUMBER)
+                .fetch()
+                .map(r -> new ApparatusAuditInfo(
+                        r.get(APPARATUS.ID),
+                        r.get(APPARATUS.UNIT_NUMBER),
+                        r.get(APPARATUS.TYPE),
+                        r.get("station_name", String.class),
+                        r.get("last_audit_date", LocalDateTime.class),
+                        r.get("has_active_audit", Boolean.class)
+                ));
+    }
+
+    /**
      * Gets apparatus list with last audit dates for a station.
      */
     List<ApparatusAuditInfo> findApparatusWithAuditInfoByStation(StationId stationId) {

@@ -66,6 +66,17 @@ public class FormalAuditService {
     }
 
     /**
+     * Gets the list of all apparatus across all stations with their audit status.
+     * For maintenance technicians who have cross-station access.
+     *
+     * @return list of all apparatus with audit info
+     */
+    @Transactional(readOnly = true)
+    public List<ApparatusAuditInfo> getAllApparatus() {
+        return auditQuery.findAllApparatusWithAuditInfo();
+    }
+
+    /**
      * Gets the list of apparatus at a station with their audit status.
      *
      * @param stationId the station to get apparatus for

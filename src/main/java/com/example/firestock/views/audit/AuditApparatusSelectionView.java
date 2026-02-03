@@ -2,7 +2,6 @@ package com.example.firestock.views.audit;
 
 import com.example.firestock.audit.ApparatusAuditInfo;
 import com.example.firestock.audit.FormalAuditService;
-import com.example.firestock.security.FirestockUserDetails;
 import com.example.firestock.views.MainLayout;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
@@ -18,7 +17,6 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.RolesAllowed;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -74,18 +72,9 @@ public class AuditApparatusSelectionView extends VerticalLayout {
     }
 
     private List<ApparatusAuditInfo> getApparatusForCurrentUser() {
-        FirestockUserDetails user = (FirestockUserDetails) SecurityContextHolder.getContext()
-                .getAuthentication().getPrincipal();
-
-        var primaryStationId = user.getPrimaryStationId();
-        if (primaryStationId == null) {
-            // Maintenance technicians have cross-station access, but we need a default station
-            // For now, return empty list if no primary station is set
-            return List.of();
-        }
-
         try {
-            return auditService.getApparatusForStation(primaryStationId);
+            // Maintenance technicians have cross-station access, so show all apparatus
+            return auditService.getAllApparatus();
         } catch (Exception e) {
             Notification.show("Error loading apparatus: " + e.getMessage(),
                             3000, Notification.Position.MIDDLE)
