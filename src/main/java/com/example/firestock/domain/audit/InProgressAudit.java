@@ -30,6 +30,7 @@ import java.util.Optional;
  * @param progress the current audit progress
  * @param pausedAt when the audit was paused (null if not paused)
  * @param lastActivityAt when the last audit activity occurred
+ * @param notes free-form notes about the audit (nullable)
  */
 public record InProgressAudit(
         FormalAuditId id,
@@ -38,7 +39,8 @@ public record InProgressAudit(
         Instant startedAt,
         AuditProgress progress,
         Instant pausedAt,
-        Instant lastActivityAt
+        Instant lastActivityAt,
+        String notes
 ) implements FormalAudit {
 
     /**
@@ -79,7 +81,8 @@ public record InProgressAudit(
                 startedAt,
                 AuditProgress.initial(totalItems),
                 null,
-                startedAt
+                startedAt,
+                null
         );
     }
 
@@ -132,7 +135,7 @@ public record InProgressAudit(
         }
         return new InProgressAudit(
                 id, apparatusId, auditorId, startedAt,
-                progress, pausedAt, pausedAt
+                progress, pausedAt, pausedAt, notes
         );
     }
 
@@ -149,7 +152,7 @@ public record InProgressAudit(
         }
         return new InProgressAudit(
                 id, apparatusId, auditorId, startedAt,
-                progress, null, resumedAt
+                progress, null, resumedAt, notes
         );
     }
 
@@ -198,8 +201,30 @@ public record InProgressAudit(
     public InProgressAudit withProgress(AuditProgress newProgress, Instant activityAt) {
         return new InProgressAudit(
                 id, apparatusId, auditorId, startedAt,
-                newProgress, pausedAt, activityAt
+                newProgress, pausedAt, activityAt, notes
         );
+    }
+
+    /**
+     * Creates a copy with updated notes.
+     *
+     * @param newNotes the new notes
+     * @return a new in-progress audit with updated notes
+     */
+    public InProgressAudit withNotes(String newNotes) {
+        return new InProgressAudit(
+                id, apparatusId, auditorId, startedAt,
+                progress, pausedAt, lastActivityAt, newNotes
+        );
+    }
+
+    /**
+     * Returns the notes as an Optional.
+     *
+     * @return the notes, or empty if not set
+     */
+    public Optional<String> notesOpt() {
+        return Optional.ofNullable(notes);
     }
 
     /**

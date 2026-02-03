@@ -47,7 +47,8 @@ public class FormalAuditMapper {
                     startedAt,
                     progress,
                     toInstant(record.getPausedAt()),
-                    toInstant(record.getUpdatedAt()) != null ? toInstant(record.getUpdatedAt()) : startedAt
+                    toInstant(record.getUpdatedAt()) != null ? toInstant(record.getUpdatedAt()) : startedAt,
+                    record.getNotes()
             );
             case COMPLETED -> new CompletedAudit(
                     record.getId(),
@@ -94,6 +95,7 @@ public class FormalAuditMapper {
             case InProgressAudit inProgress -> {
                 record.setPausedAt(toLocalDateTime(inProgress.pausedAt()));
                 record.setUpdatedAt(toLocalDateTime(inProgress.lastActivityAt()));
+                record.setNotes(inProgress.notes());
                 record.setCompletedAt(null);
                 record.setAbandonedAt(null);
             }

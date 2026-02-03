@@ -3,9 +3,12 @@ package com.example.firestock;
 import com.vaadin.flow.theme.lumo.Lumo;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
 
 import com.vaadin.flow.component.dependency.StyleSheet;
 import com.vaadin.flow.component.page.AppShellConfigurator;
+
+import java.time.Clock;
 
 @SpringBootApplication
 @StyleSheet(Lumo.STYLESHEET) // Use Aura.STYLESHEET to use Aura instead
@@ -17,4 +20,8 @@ public class Application implements AppShellConfigurator {
         SpringApplication.run(Application.class, args);
     }
 
+    @Bean
+    public Clock clock() {
+        return Clock.systemDefaultZone();
+    }
 }

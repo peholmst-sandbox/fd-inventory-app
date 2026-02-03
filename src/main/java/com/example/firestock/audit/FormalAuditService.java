@@ -2,9 +2,6 @@ package com.example.firestock.audit;
 
 import com.example.firestock.domain.audit.AuditException;
 import com.example.firestock.domain.audit.AuditItemStatus;
-import com.example.firestock.domain.audit.ConsumableTarget;
-import com.example.firestock.domain.audit.EquipmentTarget;
-import com.example.firestock.domain.audit.FormalAudit;
 import com.example.firestock.domain.audit.FormalAuditItem;
 import com.example.firestock.domain.audit.FormalAuditItemRepository;
 import com.example.firestock.domain.audit.FormalAuditRepository;
@@ -24,6 +21,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -58,6 +56,7 @@ public class FormalAuditService {
     private final IssueDao issueDao;
     private final AuditEquipmentDao auditEquipmentDao;
     private final StationAccessEvaluator stationAccess;
+    private final Clock clock;
 
     public FormalAuditService(
             FormalAuditQuery auditQuery,
@@ -65,13 +64,19 @@ public class FormalAuditService {
             FormalAuditItemRepository auditItemRepository,
             IssueDao issueDao,
             AuditEquipmentDao auditEquipmentDao,
-            StationAccessEvaluator stationAccess) {
+            StationAccessEvaluator stationAccess,
+            Clock clock) {
         this.auditQuery = auditQuery;
         this.auditRepository = auditRepository;
         this.auditItemRepository = auditItemRepository;
         this.issueDao = issueDao;
         this.auditEquipmentDao = auditEquipmentDao;
         this.stationAccess = stationAccess;
+        this.clock = clock;
+    }
+
+    private Instant now() {
+        return clock.instant();
     }
 
     /**
@@ -122,7 +127,7 @@ public class FormalAuditService {
 
         // Create new audit using the domain model
         var auditId = FormalAuditId.generate();
-        var now = Instant.now();
+        var now = now();
         var audit = InProgressAudit.start(auditId, apparatusId, performedBy, now, totalItems);
 
         auditRepository.save(audit);
@@ -213,8 +218,7 @@ public class FormalAuditService {
         var audit = auditRepository.findInProgressById(request.auditId())
                 .orElseThrow(() -> {
                     // Check if it exists but is not in progress
-                    var existingAudit = auditRepository.findById(request.auditId());
-                    if (existingAudit.isEmpty()) {
+                    if (!auditRepository.existsById(request.auditId())) {
                         return new AuditException.AuditNotFoundException(request.auditId());
                     }
                     return new AuditException.AuditAlreadyCompletedException(request.auditId());
@@ -226,10 +230,7 @@ public class FormalAuditService {
                 : auditItemRepository.existsByAuditIdAndConsumableStockId(request.auditId(), request.consumableStockId());
 
         if (alreadyAudited) {
-            var target = request.equipmentItemId() != null
-                    ? new EquipmentTarget(request.equipmentItemId())
-                    : new ConsumableTarget(request.consumableStockId());
-            throw new AuditException.ItemAlreadyAuditedException(request.auditId(), target);
+            throw new AuditException.ItemAlreadyAuditedException(request.auditId(), request.toTarget());
         }
 
         // Map request status to domain status
@@ -251,14 +252,11 @@ public class FormalAuditService {
 
         // Create and save the audit item
         var auditItemId = FormalAuditItemId.generate();
-        var target = request.equipmentItemId() != null
-                ? new EquipmentTarget(request.equipmentItemId())
-                : new ConsumableTarget(request.consumableStockId());
 
         var auditItem = new FormalAuditItem(
                 auditItemId,
                 request.auditId(),
-                target,
+                request.toTarget(),
                 request.compartmentId(),
                 request.manifestEntryId(),
                 request.isUnexpected(),
@@ -270,15 +268,15 @@ public class FormalAuditService {
                         ? new com.example.firestock.domain.audit.QuantityComparison(request.quantityExpected(), request.quantityFound())
                         : null,
                 request.conditionNotes(),
-                Instant.now()
+                now()
         );
 
         auditItemRepository.save(auditItem);
 
         // Update audit progress
         var updatedAudit = request.isUnexpected()
-                ? audit.withUnexpectedItem(issueId != null, Instant.now())
-                : audit.withItemAudited(issueId != null, Instant.now());
+                ? audit.withUnexpectedItem(issueId != null, now())
+                : audit.withItemAudited(issueId != null, now());
 
         auditRepository.save(updatedAudit);
     }
@@ -399,7 +397,7 @@ public class FormalAuditService {
                 });
 
         // BR-03: complete() enforces all items must be audited
-        var completedAudit = audit.complete(Instant.now());
+        var completedAudit = audit.complete(now());
         auditRepository.save(completedAudit);
 
         return auditQuery.findById(auditId)
@@ -425,7 +423,7 @@ public class FormalAuditService {
                     return new AuditException.AuditAlreadyCompletedException(auditId);
                 });
 
-        var abandonedAudit = audit.abandon(null, Instant.now());
+        var abandonedAudit = audit.abandon(null, now());
         auditRepository.save(abandonedAudit);
     }
 
@@ -450,7 +448,7 @@ public class FormalAuditService {
                     return new AuditException.AuditAlreadyCompletedException(auditId);
                 });
 
-        var pausedAudit = audit.pause(Instant.now());
+        var pausedAudit = audit.pause(now());
         auditRepository.save(pausedAudit);
     }
 
@@ -474,7 +472,7 @@ public class FormalAuditService {
                     return new AuditException.AuditAlreadyCompletedException(auditId);
                 });
 
-        var resumedAudit = audit.resume(Instant.now());
+        var resumedAudit = audit.resume(now());
         auditRepository.save(resumedAudit);
     }
 
@@ -492,16 +490,16 @@ public class FormalAuditService {
     public void updateNotes(FormalAuditId auditId, String notes) {
         stationAccess.requireFormalAuditAccess(auditId);
 
-        var audit = auditRepository.findById(auditId)
-                .orElseThrow(() -> new AuditException.AuditNotFoundException(auditId));
+        var audit = auditRepository.findInProgressById(auditId)
+                .orElseThrow(() -> {
+                    // BR-07: Completed audits are read-only
+                    if (!auditRepository.existsById(auditId)) {
+                        return new AuditException.AuditNotFoundException(auditId);
+                    }
+                    return new AuditException.AuditAlreadyCompletedException(auditId);
+                });
 
-        // BR-07: Completed audits are read-only
-        if (audit.isTerminal()) {
-            throw new AuditException.AuditAlreadyCompletedException(auditId);
-        }
-
-        // Notes are stored directly in the database via query since they're not part of the domain model
-        // The domain model focuses on state transitions, not notes storage
-        auditQuery.updateNotes(auditId, notes);
+        var updatedAudit = audit.withNotes(notes);
+        auditRepository.save(updatedAudit);
     }
 }
