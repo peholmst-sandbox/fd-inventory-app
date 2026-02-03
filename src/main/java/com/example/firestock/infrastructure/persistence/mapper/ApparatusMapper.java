@@ -8,8 +8,6 @@ import com.example.firestock.domain.apparatus.ReserveApparatus;
 import com.example.firestock.jooq.tables.records.ApparatusRecord;
 import org.springframework.stereotype.Component;
 
-import java.time.Year;
-
 /**
  * Mapper for converting between {@link Apparatus} domain objects and
  * {@link ApparatusRecord} jOOQ records.
@@ -31,7 +29,6 @@ public class ApparatusMapper {
         }
 
         var status = record.getStatus();
-        var year = record.getYear() != null ? Year.of(record.getYear()) : null;
 
         return switch (status) {
             case IN_SERVICE -> new InServiceApparatus(
@@ -41,7 +38,7 @@ public class ApparatusMapper {
                     record.getType(),
                     record.getMake(),
                     record.getModel(),
-                    year,
+                    record.getYear(),
                     record.getStationId(),
                     record.getBarcode(),
                     record.getNotes()
@@ -53,7 +50,7 @@ public class ApparatusMapper {
                     record.getType(),
                     record.getMake(),
                     record.getModel(),
-                    year,
+                    record.getYear(),
                     record.getStationId(),
                     record.getBarcode(),
                     record.getNotes()
@@ -65,7 +62,7 @@ public class ApparatusMapper {
                     record.getType(),
                     record.getMake(),
                     record.getModel(),
-                    year,
+                    record.getYear(),
                     record.getStationId(),
                     record.getBarcode(),
                     record.getNotes()
@@ -77,7 +74,7 @@ public class ApparatusMapper {
                     record.getType(),
                     record.getMake(),
                     record.getModel(),
-                    year,
+                    record.getYear(),
                     record.getStationId(),
                     record.getBarcode(),
                     record.getNotes()
@@ -98,7 +95,7 @@ public class ApparatusMapper {
         record.setType(apparatus.type());
         record.setMake(apparatus.make());
         record.setModel(apparatus.model());
-        record.setYear(apparatus.year() != null ? apparatus.year().getValue() : null);
+        record.setYear(apparatus.year());
         record.setStationId(apparatus.stationId());
         record.setStatus(apparatus.status());
         record.setBarcode(apparatus.barcode());

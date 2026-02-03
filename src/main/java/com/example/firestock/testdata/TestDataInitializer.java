@@ -21,6 +21,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.time.Year;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -207,7 +208,7 @@ class TestDataInitializer implements ApplicationRunner {
                 .set(APPARATUS.STATION_ID, stationId)
                 .set(APPARATUS.MAKE, "Pierce")
                 .set(APPARATUS.MODEL, "Arrow XT")
-                .set(APPARATUS.YEAR, 2022)
+                .set(APPARATUS.YEAR, Year.of(2022))
                 .set(APPARATUS.VIN, "4P1CD01H35A000001")
                 .execute();
 

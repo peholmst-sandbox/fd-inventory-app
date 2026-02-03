@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -31,15 +32,18 @@ class ExistingIssueDialog extends Dialog {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d, yyyy");
 
     private final List<IssueSummary> existingIssues;
+    private final ZoneId zoneId;
     private final RadioButtonGroup<IssueSummary> issueGroup;
     private final TextArea additionalNotes;
 
     public ExistingIssueDialog(
             List<IssueSummary> existingIssues,
+            ZoneId zoneId,
             BiConsumer<IssueSummary, String> onAddToExisting,
             Consumer<Void> onCreateNew
     ) {
         this.existingIssues = existingIssues;
+        this.zoneId = Objects.requireNonNull(zoneId, "ZoneId cannot be null");
 
         addClassName("existing-issue-dialog");
         setDraggable(false);
@@ -145,7 +149,7 @@ class ExistingIssueDialog extends Dialog {
         Span categorySpan = new Span(issue.categoryLabel());
         categorySpan.addClassName("issue-category");
 
-        Span dateSpan = new Span("Reported: " + LocalDateTime.ofInstant(issue.reportedAt(), ZoneId.systemDefault()).format(DATE_FORMATTER));
+        Span dateSpan = new Span("Reported: " + LocalDateTime.ofInstant(issue.reportedAt(), zoneId).format(DATE_FORMATTER));
         dateSpan.addClassName("issue-date");
 
         Span statusSpan = new Span(issue.statusLabel());

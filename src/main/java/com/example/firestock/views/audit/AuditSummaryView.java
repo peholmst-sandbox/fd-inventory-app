@@ -29,6 +29,7 @@ import com.vaadin.flow.router.WildcardParameter;
 import jakarta.annotation.security.RolesAllowed;
 import org.springframework.security.access.AccessDeniedException;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -48,13 +49,15 @@ public class AuditSummaryView extends VerticalLayout implements HasUrlParameter<
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a");
 
     private final FormalAuditService auditService;
+    private final ZoneId zoneId;
 
     private ApparatusId apparatusId;
     private FormalAuditId auditId;
     private AuditDetails auditDetails;
 
-    public AuditSummaryView(FormalAuditService auditService) {
+    public AuditSummaryView(FormalAuditService auditService, Clock clock) {
         this.auditService = auditService;
+        this.zoneId = clock.getZone();
 
         addClassName("audit-summary-view");
         setSizeFull();
@@ -313,6 +316,6 @@ public class AuditSummaryView extends VerticalLayout implements HasUrlParameter<
     }
 
     private String formatInstant(Instant instant) {
-        return LocalDateTime.ofInstant(instant, ZoneId.systemDefault()).format(DATE_TIME_FORMATTER);
+        return LocalDateTime.ofInstant(instant, zoneId).format(DATE_TIME_FORMATTER);
     }
 }

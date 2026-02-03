@@ -404,6 +404,13 @@
                                     <includeExpression>.*\.(started_at|completed_at|paused_at|abandoned_at|audited_at|created_at|updated_at|last_login_at|reported_at|acknowledged_at|resolved_at|performed_at|initiated_at|assigned_at|uploaded_at|verified_at)</includeExpression>
                                     <includeTypes>timestamp</includeTypes>
                                 </forcedType>
+                                <!-- Year Converter for year fields -->
+                                <forcedType>
+                                    <userType>java.time.Year</userType>
+                                    <converter>com.example.firestock.jooq.converters.YearConverter</converter>
+                                    <includeExpression>.*\.year</includeExpression>
+                                    <includeTypes>integer|int4</includeTypes>
+                                </forcedType>
                             </forcedTypes>
                         </database>
                         <generate>
