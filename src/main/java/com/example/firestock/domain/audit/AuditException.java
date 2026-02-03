@@ -149,4 +149,27 @@ public abstract sealed class AuditException extends RuntimeException {
             return auditId;
         }
     }
+
+    /**
+     * Thrown when attempting to audit an item that has already been audited
+     * in the same audit session.
+     */
+    public static final class ItemAlreadyAuditedException extends AuditException {
+        private final FormalAuditId auditId;
+        private final AuditedItemTarget target;
+
+        public ItemAlreadyAuditedException(FormalAuditId auditId, AuditedItemTarget target) {
+            super("Item has already been audited in this audit: " + target);
+            this.auditId = auditId;
+            this.target = target;
+        }
+
+        public FormalAuditId auditId() {
+            return auditId;
+        }
+
+        public AuditedItemTarget target() {
+            return target;
+        }
+    }
 }

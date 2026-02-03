@@ -1,6 +1,7 @@
 package com.example.firestock.domain.audit;
 
 import com.example.firestock.domain.primitives.ids.ApparatusId;
+import com.example.firestock.domain.primitives.ids.EquipmentItemId;
 import com.example.firestock.domain.primitives.ids.FormalAuditId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -186,6 +187,29 @@ class AuditExceptionTest {
     }
 
     @Nested
+    @DisplayName("ItemAlreadyAuditedException")
+    class ItemAlreadyAuditedExceptionTests {
+
+        @Test
+        void captures_audit_id_and_target() {
+            var target = EquipmentTarget.of(EquipmentItemId.generate());
+            var exception = new AuditException.ItemAlreadyAuditedException(auditId, target);
+
+            assertThat(exception.auditId()).isEqualTo(auditId);
+            assertThat(exception.target()).isEqualTo(target);
+        }
+
+        @Test
+        void message_describes_the_problem() {
+            var target = EquipmentTarget.of(EquipmentItemId.generate());
+            var exception = new AuditException.ItemAlreadyAuditedException(auditId, target);
+
+            assertThat(exception.getMessage())
+                    .contains("already been audited");
+        }
+    }
+
+    @Nested
     @DisplayName("Sealed class hierarchy")
     class SealedClassHierarchy {
 
@@ -204,6 +228,8 @@ class AuditExceptionTest {
             assertThat(new AuditException.AuditAlreadyPausedException(auditId))
                     .isInstanceOf(AuditException.class);
             assertThat(new AuditException.AuditNotFoundException(auditId))
+                    .isInstanceOf(AuditException.class);
+            assertThat(new AuditException.ItemAlreadyAuditedException(auditId, EquipmentTarget.of(EquipmentItemId.generate())))
                     .isInstanceOf(AuditException.class);
         }
 
@@ -238,6 +264,8 @@ class AuditExceptionTest {
                         "Already paused: " + e.auditId();
                 case AuditException.AuditNotFoundException e ->
                         "Not found: " + e.auditId();
+                case AuditException.ItemAlreadyAuditedException e ->
+                        "Already audited: " + e.target();
             };
 
             assertThat(result).startsWith("Incomplete: 5");

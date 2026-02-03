@@ -1,9 +1,11 @@
 package com.example.firestock.domain.audit;
 
+import com.example.firestock.domain.primitives.ids.CompartmentId;
 import com.example.firestock.domain.primitives.ids.ConsumableStockId;
 import com.example.firestock.domain.primitives.ids.EquipmentItemId;
 import com.example.firestock.domain.primitives.ids.FormalAuditId;
 import com.example.firestock.domain.primitives.ids.FormalAuditItemId;
+import com.example.firestock.domain.primitives.ids.ManifestEntryId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -27,6 +29,8 @@ class FormalAuditItemTest {
     private final FormalAuditId auditId = FormalAuditId.generate();
     private final EquipmentItemId equipmentId = EquipmentItemId.generate();
     private final ConsumableStockId consumableId = ConsumableStockId.generate();
+    private final CompartmentId compartmentId = CompartmentId.generate();
+    private final ManifestEntryId manifestEntryId = ManifestEntryId.generate();
 
     @Nested
     @DisplayName("Creating unaudited items")
@@ -45,6 +49,23 @@ class FormalAuditItemTest {
             assertThat(item.target()).isInstanceOf(EquipmentTarget.class);
             assertThat(item.status()).isEqualTo(AuditItemStatus.NOT_AUDITED);
             assertThat(item.auditedAt()).isNull();
+            assertThat(item.isUnexpected()).isFalse();
+        }
+
+        @Test
+        void unauditedEquipment_with_location_creates_item_linked_to_manifest() {
+            var item = FormalAuditItem.unauditedEquipment(
+                    itemId,
+                    auditId,
+                    EquipmentTarget.of(equipmentId),
+                    compartmentId,
+                    manifestEntryId
+            );
+
+            assertThat(item.compartmentId()).isEqualTo(compartmentId);
+            assertThat(item.manifestEntryId()).isEqualTo(manifestEntryId);
+            assertThat(item.isUnexpected()).isFalse();
+            assertThat(item.isExpected()).isTrue();
         }
 
         @Test
@@ -60,6 +81,22 @@ class FormalAuditItemTest {
             assertThat(item.target()).isInstanceOf(ConsumableTarget.class);
             assertThat(item.status()).isEqualTo(AuditItemStatus.NOT_AUDITED);
             assertThat(item.auditedAt()).isNull();
+            assertThat(item.isUnexpected()).isFalse();
+        }
+
+        @Test
+        void unauditedConsumable_with_location_creates_item_linked_to_manifest() {
+            var item = FormalAuditItem.unauditedConsumable(
+                    itemId,
+                    auditId,
+                    ConsumableTarget.of(consumableId),
+                    compartmentId,
+                    manifestEntryId
+            );
+
+            assertThat(item.compartmentId()).isEqualTo(compartmentId);
+            assertThat(item.manifestEntryId()).isEqualTo(manifestEntryId);
+            assertThat(item.isUnexpected()).isFalse();
         }
 
         @Test
@@ -78,6 +115,41 @@ class FormalAuditItemTest {
     }
 
     @Nested
+    @DisplayName("Creating unexpected items")
+    class CreatingUnexpectedItems {
+
+        @Test
+        void unexpectedEquipment_creates_item_marked_as_unexpected() {
+            var item = FormalAuditItem.unexpectedEquipment(
+                    itemId,
+                    auditId,
+                    EquipmentTarget.of(equipmentId),
+                    compartmentId
+            );
+
+            assertThat(item.isUnexpected()).isTrue();
+            assertThat(item.isExpected()).isFalse();
+            assertThat(item.manifestEntryId()).isNull();
+            assertThat(item.compartmentId()).isEqualTo(compartmentId);
+            assertThat(item.status()).isEqualTo(AuditItemStatus.NOT_AUDITED);
+        }
+
+        @Test
+        void unexpectedConsumable_creates_item_marked_as_unexpected() {
+            var item = FormalAuditItem.unexpectedConsumable(
+                    itemId,
+                    auditId,
+                    ConsumableTarget.of(consumableId),
+                    compartmentId
+            );
+
+            assertThat(item.isUnexpected()).isTrue();
+            assertThat(item.isExpected()).isFalse();
+            assertThat(item.manifestEntryId()).isNull();
+        }
+    }
+
+    @Nested
     @DisplayName("Validation")
     class Validation {
 
@@ -85,6 +157,7 @@ class FormalAuditItemTest {
         void rejects_null_id() {
             assertThatThrownBy(() -> new FormalAuditItem(
                     null, auditId, EquipmentTarget.of(equipmentId),
+                    null, null, false,
                     AuditItemStatus.NOT_AUDITED, null, null, null, null, null, null))
                     .isInstanceOf(NullPointerException.class)
                     .hasMessageContaining("Audit item ID cannot be null");
@@ -94,6 +167,7 @@ class FormalAuditItemTest {
         void rejects_null_audit_id() {
             assertThatThrownBy(() -> new FormalAuditItem(
                     itemId, null, EquipmentTarget.of(equipmentId),
+                    null, null, false,
                     AuditItemStatus.NOT_AUDITED, null, null, null, null, null, null))
                     .isInstanceOf(NullPointerException.class)
                     .hasMessageContaining("Audit ID cannot be null");
@@ -103,6 +177,7 @@ class FormalAuditItemTest {
         void rejects_null_target() {
             assertThatThrownBy(() -> new FormalAuditItem(
                     itemId, auditId, null,
+                    null, null, false,
                     AuditItemStatus.NOT_AUDITED, null, null, null, null, null, null))
                     .isInstanceOf(NullPointerException.class)
                     .hasMessageContaining("Audit target cannot be null");
@@ -112,6 +187,7 @@ class FormalAuditItemTest {
         void rejects_null_status() {
             assertThatThrownBy(() -> new FormalAuditItem(
                     itemId, auditId, EquipmentTarget.of(equipmentId),
+                    null, null, false,
                     null, null, null, null, null, null, null))
                     .isInstanceOf(NullPointerException.class)
                     .hasMessageContaining("Audit item status cannot be null");
@@ -124,9 +200,20 @@ class FormalAuditItemTest {
 
             assertThatThrownBy(() -> new FormalAuditItem(
                     itemId, auditId, EquipmentTarget.of(equipmentId),
+                    null, null, false,
                     AuditItemStatus.VERIFIED, null, null, null, quantityComparison, null, null))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("Quantity comparison can only be set for consumable targets");
+        }
+
+        @Test
+        void rejects_unexpected_item_with_manifest_entry() {
+            assertThatThrownBy(() -> new FormalAuditItem(
+                    itemId, auditId, EquipmentTarget.of(equipmentId),
+                    compartmentId, manifestEntryId, true,  // isUnexpected=true with manifestEntryId
+                    AuditItemStatus.NOT_AUDITED, null, null, null, null, null, null))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("Unexpected items cannot have a manifest entry ID");
         }
     }
 
@@ -212,6 +299,28 @@ class FormalAuditItemTest {
             assertThat(audited.condition()).isNull();
             assertThat(audited.requiresIssue()).isTrue();
         }
+
+        @Test
+        void withAuditResult_preserves_location_fields() {
+            var item = FormalAuditItem.unauditedEquipment(
+                    itemId, auditId, EquipmentTarget.of(equipmentId),
+                    compartmentId, manifestEntryId
+            );
+            var auditedAt = Instant.now();
+
+            var audited = item.withAuditResult(
+                    AuditItemStatus.VERIFIED,
+                    ItemCondition.GOOD,
+                    TestResult.PASSED,
+                    null,
+                    null,
+                    auditedAt
+            );
+
+            assertThat(audited.compartmentId()).isEqualTo(compartmentId);
+            assertThat(audited.manifestEntryId()).isEqualTo(manifestEntryId);
+            assertThat(audited.isUnexpected()).isFalse();
+        }
     }
 
     @Nested
@@ -288,6 +397,27 @@ class FormalAuditItemTest {
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("Cannot set consumable audit result on equipment target");
         }
+
+        @Test
+        void withConsumableAuditResult_preserves_location_fields() {
+            var item = FormalAuditItem.unauditedConsumable(
+                    itemId, auditId, ConsumableTarget.of(consumableId),
+                    compartmentId, manifestEntryId
+            );
+            var auditedAt = Instant.now();
+
+            var audited = item.withConsumableAuditResult(
+                    AuditItemStatus.VERIFIED,
+                    ExpiryStatus.OK,
+                    QuantityComparison.of(50, 50),
+                    null,
+                    auditedAt
+            );
+
+            assertThat(audited.compartmentId()).isEqualTo(compartmentId);
+            assertThat(audited.manifestEntryId()).isEqualTo(manifestEntryId);
+            assertThat(audited.isUnexpected()).isFalse();
+        }
     }
 
     @Nested
@@ -339,6 +469,7 @@ class FormalAuditItemTest {
         private FormalAuditItem createAuditedItem(AuditItemStatus status) {
             return new FormalAuditItem(
                     itemId, auditId, EquipmentTarget.of(equipmentId),
+                    null, null, false,
                     status, null, null, null, null, null, Instant.now()
             );
         }
@@ -352,6 +483,8 @@ class FormalAuditItemTest {
         void optional_methods_return_empty_for_null_values() {
             var item = FormalAuditItem.unauditedEquipment(itemId, auditId, EquipmentTarget.of(equipmentId));
 
+            assertThat(item.compartmentIdOpt()).isEmpty();
+            assertThat(item.manifestEntryIdOpt()).isEmpty();
             assertThat(item.conditionOpt()).isEmpty();
             assertThat(item.testResultOpt()).isEmpty();
             assertThat(item.expiryStatusOpt()).isEmpty();
@@ -365,6 +498,7 @@ class FormalAuditItemTest {
             var auditedAt = Instant.now();
             var item = new FormalAuditItem(
                     itemId, auditId, EquipmentTarget.of(equipmentId),
+                    compartmentId, manifestEntryId, false,
                     AuditItemStatus.VERIFIED,
                     ItemCondition.GOOD,
                     TestResult.PASSED,
@@ -374,6 +508,8 @@ class FormalAuditItemTest {
                     auditedAt
             );
 
+            assertThat(item.compartmentIdOpt()).contains(compartmentId);
+            assertThat(item.manifestEntryIdOpt()).contains(manifestEntryId);
             assertThat(item.conditionOpt()).contains(ItemCondition.GOOD);
             assertThat(item.testResultOpt()).contains(TestResult.PASSED);
             assertThat(item.expiryStatusOpt()).contains(ExpiryStatus.OK);

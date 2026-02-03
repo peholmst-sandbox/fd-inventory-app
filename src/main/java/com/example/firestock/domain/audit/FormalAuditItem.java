@@ -1,7 +1,9 @@
 package com.example.firestock.domain.audit;
 
+import com.example.firestock.domain.primitives.ids.CompartmentId;
 import com.example.firestock.domain.primitives.ids.FormalAuditId;
 import com.example.firestock.domain.primitives.ids.FormalAuditItemId;
+import com.example.firestock.domain.primitives.ids.ManifestEntryId;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -15,9 +17,20 @@ import java.util.Optional;
  * {@link AuditedItemTarget} interface, ensuring the XOR constraint between
  * equipment and consumable.
  *
+ * <p>Audit items can be:
+ * <ul>
+ *   <li><b>Expected items:</b> Items on the manifest that should be present
+ *       (linked via manifestEntryId)</li>
+ *   <li><b>Unexpected items:</b> Items found during audit that were not on the
+ *       manifest (isUnexpected = true, manifestEntryId = null)</li>
+ * </ul>
+ *
  * @param id the unique identifier for this audit item record
  * @param auditId the formal audit this item belongs to
  * @param target the equipment or consumable being audited (XOR constraint)
+ * @param compartmentId the compartment where this item is located (nullable for unexpected)
+ * @param manifestEntryId link to the manifest entry if this is an expected item (nullable)
+ * @param isUnexpected true if this item was found but not on the manifest
  * @param status the verification status of the item
  * @param condition the physical condition assessment (equipment only, nullable)
  * @param testResult the functional test result (equipment only, nullable)
@@ -30,6 +43,9 @@ public record FormalAuditItem(
         FormalAuditItemId id,
         FormalAuditId auditId,
         AuditedItemTarget target,
+        CompartmentId compartmentId,
+        ManifestEntryId manifestEntryId,
+        boolean isUnexpected,
         AuditItemStatus status,
         ItemCondition condition,
         TestResult testResult,
@@ -49,10 +65,39 @@ public record FormalAuditItem(
         if (quantityComparison != null && target.isEquipment()) {
             throw new IllegalArgumentException("Quantity comparison can only be set for consumable targets");
         }
+
+        // Unexpected items should not have a manifest entry
+        if (isUnexpected && manifestEntryId != null) {
+            throw new IllegalArgumentException("Unexpected items cannot have a manifest entry ID");
+        }
     }
 
     /**
-     * Creates a new unaudited equipment item.
+     * Creates a new unaudited equipment item from a manifest entry.
+     *
+     * @param id the audit item ID
+     * @param auditId the parent audit ID
+     * @param target the equipment target
+     * @param compartmentId the compartment where the item is located
+     * @param manifestEntryId the manifest entry this item is linked to
+     * @return a new unaudited equipment item
+     */
+    public static FormalAuditItem unauditedEquipment(
+            FormalAuditItemId id,
+            FormalAuditId auditId,
+            EquipmentTarget target,
+            CompartmentId compartmentId,
+            ManifestEntryId manifestEntryId
+    ) {
+        return new FormalAuditItem(
+                id, auditId, target, compartmentId, manifestEntryId, false,
+                AuditItemStatus.NOT_AUDITED,
+                null, null, null, null, null, null
+        );
+    }
+
+    /**
+     * Creates a new unaudited equipment item (legacy factory method without location info).
      *
      * @param id the audit item ID
      * @param auditId the parent audit ID
@@ -65,14 +110,38 @@ public record FormalAuditItem(
             EquipmentTarget target
     ) {
         return new FormalAuditItem(
-                id, auditId, target,
+                id, auditId, target, null, null, false,
                 AuditItemStatus.NOT_AUDITED,
                 null, null, null, null, null, null
         );
     }
 
     /**
-     * Creates a new unaudited consumable item.
+     * Creates a new unaudited consumable item from a manifest entry.
+     *
+     * @param id the audit item ID
+     * @param auditId the parent audit ID
+     * @param target the consumable target
+     * @param compartmentId the compartment where the item is located
+     * @param manifestEntryId the manifest entry this item is linked to
+     * @return a new unaudited consumable item
+     */
+    public static FormalAuditItem unauditedConsumable(
+            FormalAuditItemId id,
+            FormalAuditId auditId,
+            ConsumableTarget target,
+            CompartmentId compartmentId,
+            ManifestEntryId manifestEntryId
+    ) {
+        return new FormalAuditItem(
+                id, auditId, target, compartmentId, manifestEntryId, false,
+                AuditItemStatus.NOT_AUDITED,
+                null, null, null, null, null, null
+        );
+    }
+
+    /**
+     * Creates a new unaudited consumable item (legacy factory method without location info).
      *
      * @param id the audit item ID
      * @param auditId the parent audit ID
@@ -85,7 +154,51 @@ public record FormalAuditItem(
             ConsumableTarget target
     ) {
         return new FormalAuditItem(
-                id, auditId, target,
+                id, auditId, target, null, null, false,
+                AuditItemStatus.NOT_AUDITED,
+                null, null, null, null, null, null
+        );
+    }
+
+    /**
+     * Creates an audit item for unexpected equipment found during audit.
+     *
+     * @param id the audit item ID
+     * @param auditId the parent audit ID
+     * @param target the equipment target
+     * @param compartmentId the compartment where the unexpected item was found (nullable)
+     * @return a new unexpected equipment item
+     */
+    public static FormalAuditItem unexpectedEquipment(
+            FormalAuditItemId id,
+            FormalAuditId auditId,
+            EquipmentTarget target,
+            CompartmentId compartmentId
+    ) {
+        return new FormalAuditItem(
+                id, auditId, target, compartmentId, null, true,
+                AuditItemStatus.NOT_AUDITED,
+                null, null, null, null, null, null
+        );
+    }
+
+    /**
+     * Creates an audit item for unexpected consumable found during audit.
+     *
+     * @param id the audit item ID
+     * @param auditId the parent audit ID
+     * @param target the consumable target
+     * @param compartmentId the compartment where the unexpected item was found (nullable)
+     * @return a new unexpected consumable item
+     */
+    public static FormalAuditItem unexpectedConsumable(
+            FormalAuditItemId id,
+            FormalAuditId auditId,
+            ConsumableTarget target,
+            CompartmentId compartmentId
+    ) {
+        return new FormalAuditItem(
+                id, auditId, target, compartmentId, null, true,
                 AuditItemStatus.NOT_AUDITED,
                 null, null, null, null, null, null
         );
@@ -110,6 +223,33 @@ public record FormalAuditItem(
      */
     public boolean isAudited() {
         return status != AuditItemStatus.NOT_AUDITED;
+    }
+
+    /**
+     * Checks if this is an expected item (from the manifest).
+     *
+     * @return true if this item was expected based on the manifest
+     */
+    public boolean isExpected() {
+        return !isUnexpected;
+    }
+
+    /**
+     * Returns the compartment ID as an Optional.
+     *
+     * @return the compartment ID, or empty if not set
+     */
+    public Optional<CompartmentId> compartmentIdOpt() {
+        return Optional.ofNullable(compartmentId);
+    }
+
+    /**
+     * Returns the manifest entry ID as an Optional.
+     *
+     * @return the manifest entry ID, or empty if this is an unexpected item
+     */
+    public Optional<ManifestEntryId> manifestEntryIdOpt() {
+        return Optional.ofNullable(manifestEntryId);
     }
 
     /**
@@ -187,6 +327,7 @@ public record FormalAuditItem(
     ) {
         return new FormalAuditItem(
                 this.id, this.auditId, this.target,
+                this.compartmentId, this.manifestEntryId, this.isUnexpected,
                 status, condition, testResult, expiryStatus,
                 this.quantityComparison, notes, auditedAt
         );
@@ -214,6 +355,7 @@ public record FormalAuditItem(
         }
         return new FormalAuditItem(
                 this.id, this.auditId, this.target,
+                this.compartmentId, this.manifestEntryId, this.isUnexpected,
                 status, null, null, expiryStatus,
                 quantityComparison, notes, auditedAt
         );
