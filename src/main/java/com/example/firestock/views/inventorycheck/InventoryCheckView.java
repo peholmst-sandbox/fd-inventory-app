@@ -1,5 +1,16 @@
 package com.example.firestock.views.inventorycheck;
 
+import com.example.firestock.domain.primitives.ids.ApparatusId;
+import com.example.firestock.domain.primitives.ids.CompartmentId;
+import com.example.firestock.domain.primitives.numbers.Quantity;
+import com.example.firestock.inventorycheck.ApparatusDetails;
+import com.example.firestock.inventorycheck.CheckableItem;
+import com.example.firestock.inventorycheck.CompartmentWithItems;
+import com.example.firestock.inventorycheck.InventoryCheckSummary;
+import com.example.firestock.inventorycheck.ItemVerificationRequest;
+import com.example.firestock.inventorycheck.ShiftInventoryCheckService;
+import com.example.firestock.jooq.enums.VerificationStatus;
+import com.example.firestock.security.FirestockUserDetails;
 import com.example.firestock.views.MainLayout;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -8,6 +19,8 @@ import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -20,10 +33,14 @@ import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.PermitAll;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.util.HashMap;
+import java.math.BigDecimal;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * Main inventory check view for verifying equipment in compartments.
@@ -34,21 +51,22 @@ import java.util.Map;
 @PermitAll
 public class InventoryCheckView extends VerticalLayout implements HasUrlParameter<String> {
 
-    private String apparatusId;
-    private String apparatusName;
+    private final ShiftInventoryCheckService inventoryCheckService;
+
+    private ApparatusId apparatusId;
+    private ApparatusDetails apparatusDetails;
+    private InventoryCheckSummary currentCheck;
     private int currentCompartmentIndex = 0;
-    private final Map<String, ItemStatus> itemStatuses = new HashMap<>();
+    private final Set<String> verifiedItemIds = new HashSet<>();
 
     private Span progressText;
     private ProgressBar progressBar;
     private VerticalLayout itemsContainer;
     private Tabs compartmentTabs;
 
-    private List<CompartmentData> compartments;
-    private int totalItems;
-    private int checkedItems = 0;
+    public InventoryCheckView(ShiftInventoryCheckService inventoryCheckService) {
+        this.inventoryCheckService = inventoryCheckService;
 
-    public InventoryCheckView() {
         addClassName("inventory-check-view");
         setSizeFull();
         setPadding(false);
@@ -57,12 +75,54 @@ public class InventoryCheckView extends VerticalLayout implements HasUrlParamete
 
     @Override
     public void setParameter(BeforeEvent event, String parameter) {
-        this.apparatusId = parameter;
-        this.apparatusName = getApparatusName(parameter);
-        this.compartments = getMockCompartments();
-        this.totalItems = compartments.stream().mapToInt(c -> c.items().size()).sum();
+        try {
+            this.apparatusId = new ApparatusId(UUID.fromString(parameter));
+        } catch (IllegalArgumentException e) {
+            showErrorAndNavigateBack("Invalid apparatus ID");
+            return;
+        }
 
-        buildUI();
+        try {
+            // Load apparatus details
+            this.apparatusDetails = inventoryCheckService.getApparatusDetails(apparatusId);
+
+            // Check for existing active check or start a new one
+            var existingCheck = inventoryCheckService.getActiveCheck(apparatusId);
+            if (existingCheck.isPresent()) {
+                this.currentCheck = existingCheck.get();
+                // Restore verified items count from the existing check
+                // Note: We track verified items locally for UI purposes
+            } else {
+                // Start a new check
+                var user = getCurrentUser();
+                try {
+                    this.currentCheck = inventoryCheckService.startCheck(apparatusId, user.getUserId());
+                } catch (ShiftInventoryCheckService.ActiveCheckExistsException ex) {
+                    // Race condition - another user started a check
+                    this.currentCheck = inventoryCheckService.getActiveCheck(apparatusId)
+                            .orElseThrow(() -> new IllegalStateException("Check disappeared unexpectedly"));
+                    Notification.show("Resuming existing check started by another user",
+                            3000, Notification.Position.TOP_CENTER);
+                }
+            }
+
+            buildUI();
+        } catch (AccessDeniedException e) {
+            showErrorAndNavigateBack("You don't have access to this apparatus");
+        } catch (IllegalArgumentException e) {
+            showErrorAndNavigateBack("Apparatus not found");
+        }
+    }
+
+    private void showErrorAndNavigateBack(String message) {
+        Notification.show(message, 3000, Notification.Position.MIDDLE)
+                .addThemeVariants(NotificationVariant.LUMO_ERROR);
+        getUI().ifPresent(ui -> ui.navigate(ApparatusSelectionView.class));
+    }
+
+    private FirestockUserDetails getCurrentUser() {
+        return (FirestockUserDetails) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
     }
 
     private void buildUI() {
@@ -84,7 +144,7 @@ public class InventoryCheckView extends VerticalLayout implements HasUrlParamete
                 getUI().ifPresent(ui -> ui.navigate(ApparatusSelectionView.class))
         );
 
-        Span title = new Span(apparatusName);
+        Span title = new Span(apparatusDetails.unitNumber().value());
         title.addClassName("check-title");
 
         HorizontalLayout header = new HorizontalLayout(backButton, title);
@@ -101,7 +161,7 @@ public class InventoryCheckView extends VerticalLayout implements HasUrlParamete
         progressText.addClassName("progress-text");
 
         progressBar = new ProgressBar();
-        progressBar.setValue(0);
+        progressBar.setValue(getProgressValue());
         progressBar.addClassName("check-progress-bar");
 
         VerticalLayout progressSection = new VerticalLayout(progressText, progressBar);
@@ -117,15 +177,15 @@ public class InventoryCheckView extends VerticalLayout implements HasUrlParamete
         compartmentTabs.addClassName("compartment-tabs");
         compartmentTabs.setWidthFull();
 
-        for (int i = 0; i < compartments.size(); i++) {
-            Tab tab = new Tab(compartments.get(i).name());
+        List<CompartmentWithItems> compartments = apparatusDetails.compartments();
+        for (CompartmentWithItems compartment : compartments) {
+            Tab tab = new Tab(compartment.name());
             compartmentTabs.add(tab);
         }
 
         compartmentTabs.addSelectedChangeListener(e -> {
             currentCompartmentIndex = compartmentTabs.getSelectedIndex();
             updateItemsList();
-            updateProgress();
         });
 
         return compartmentTabs;
@@ -140,6 +200,7 @@ public class InventoryCheckView extends VerticalLayout implements HasUrlParamete
         Button scanButton = new Button("Scan", new Icon(VaadinIcon.BARCODE));
         scanButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         scanButton.addClassName("scan-button");
+        // TODO: Implement barcode scanning functionality
 
         HorizontalLayout barcodeSection = new HorizontalLayout(barcodeField, scanButton);
         barcodeSection.setWidthFull();
@@ -164,34 +225,66 @@ public class InventoryCheckView extends VerticalLayout implements HasUrlParamete
     private void updateItemsList() {
         itemsContainer.removeAll();
 
-        CompartmentData currentCompartment = compartments.get(currentCompartmentIndex);
+        List<CompartmentWithItems> compartments = apparatusDetails.compartments();
+        if (compartments.isEmpty() || currentCompartmentIndex >= compartments.size()) {
+            Span noItems = new Span("No items in this compartment");
+            noItems.addClassName("text-secondary");
+            itemsContainer.add(noItems);
+            return;
+        }
 
-        for (EquipmentItem item : currentCompartment.items()) {
-            itemsContainer.add(createItemCard(item));
+        CompartmentWithItems currentCompartment = compartments.get(currentCompartmentIndex);
+
+        for (CheckableItem item : currentCompartment.items()) {
+            itemsContainer.add(createItemCard(item, currentCompartment.id()));
         }
     }
 
-    private Div createItemCard(EquipmentItem item) {
+    private Div createItemCard(CheckableItem item, CompartmentId compartmentId) {
         Div card = new Div();
         card.addClassName("item-card");
 
         H3 itemName = new H3(item.name());
         itemName.addClassName("item-name");
 
-        Span itemType = new Span(item.type());
+        Span itemType = new Span(item.typeName());
         itemType.addClassName("item-type");
 
-        Span serialNumber = new Span("S/N: " + item.serialNumber());
-        serialNumber.addClassName("item-serial");
-
-        ItemStatus status = itemStatuses.getOrDefault(item.id(), ItemStatus.UNCHECKED);
-        Span statusBadge = createStatusBadge(status);
-
-        VerticalLayout itemInfo = new VerticalLayout(itemName, itemType, serialNumber, statusBadge);
+        VerticalLayout itemInfo = new VerticalLayout(itemName, itemType);
         itemInfo.setPadding(false);
         itemInfo.setSpacing(false);
 
-        HorizontalLayout actionButtons = createActionButtons(item);
+        // Add serial number for equipment
+        if (item.serialNumber() != null) {
+            Span serialNumber = new Span("S/N: " + item.serialNumber().value());
+            serialNumber.addClassName("item-serial");
+            itemInfo.add(serialNumber);
+        }
+
+        // Add quantity info for consumables
+        if (item.isConsumable() && item.requiredQuantity() != null) {
+            String qtyText = item.currentQuantity() != null
+                    ? String.format("Qty: %s / %s", item.currentQuantity().value(), item.requiredQuantity())
+                    : String.format("Expected: %s", item.requiredQuantity());
+            Span quantitySpan = new Span(qtyText);
+            quantitySpan.addClassName("item-quantity");
+            itemInfo.add(quantitySpan);
+        }
+
+        // Show expiry date if applicable
+        if (item.expiryDate() != null) {
+            Span expirySpan = new Span("Expires: " + item.expiryDate().toString());
+            expirySpan.addClassName("item-expiry");
+            itemInfo.add(expirySpan);
+        }
+
+        String itemUniqueId = getItemUniqueId(item);
+        boolean isVerified = verifiedItemIds.contains(itemUniqueId);
+
+        Span statusBadge = createStatusBadge(isVerified);
+        itemInfo.add(statusBadge);
+
+        HorizontalLayout actionButtons = createActionButtons(item, compartmentId);
 
         VerticalLayout cardContent = new VerticalLayout(itemInfo, actionButtons);
         cardContent.setPadding(false);
@@ -199,29 +292,41 @@ public class InventoryCheckView extends VerticalLayout implements HasUrlParamete
 
         card.add(cardContent);
 
+        if (isVerified) {
+            card.addClassName("item-verified");
+        }
+
         return card;
     }
 
-    private Span createStatusBadge(ItemStatus status) {
-        Span badge = new Span(status.label);
+    private String getItemUniqueId(CheckableItem item) {
+        if (item.equipmentItemId() != null) {
+            return "eq-" + item.equipmentItemId().toString();
+        } else {
+            return "cs-" + item.consumableStockId().toString();
+        }
+    }
+
+    private Span createStatusBadge(boolean isVerified) {
+        Span badge = new Span(isVerified ? "Checked" : "Not Checked");
         badge.addClassName("status-badge");
-        badge.addClassName("status-" + status.cssClass);
+        badge.addClassName(isVerified ? "status-present" : "status-unchecked");
         return badge;
     }
 
-    private HorizontalLayout createActionButtons(EquipmentItem item) {
+    private HorizontalLayout createActionButtons(CheckableItem item, CompartmentId compartmentId) {
         Button presentBtn = new Button("Present", new Icon(VaadinIcon.CHECK));
         presentBtn.addClassName("action-btn");
         presentBtn.addClassName("present-btn");
-        presentBtn.addClickListener(e -> markItem(item, ItemStatus.PRESENT));
+        presentBtn.addClickListener(e -> markItem(item, compartmentId, VerificationStatus.PRESENT, null, null));
 
         Button missingBtn = new Button("Missing", new Icon(VaadinIcon.CLOSE));
         missingBtn.addClassName("action-btn");
         missingBtn.addClassName("missing-btn");
         missingBtn.addClickListener(e -> {
             ItemVerificationDialog dialog = new ItemVerificationDialog(
-                    item.name(), item.type(), item.serialNumber(), ItemStatus.MISSING,
-                    notes -> markItem(item, ItemStatus.MISSING)
+                    item, VerificationStatus.MISSING,
+                    result -> markItem(item, compartmentId, result.status(), result.notes(), result.quantityFound())
             );
             dialog.open();
         });
@@ -231,8 +336,8 @@ public class InventoryCheckView extends VerticalLayout implements HasUrlParamete
         damagedBtn.addClassName("damaged-btn");
         damagedBtn.addClickListener(e -> {
             ItemVerificationDialog dialog = new ItemVerificationDialog(
-                    item.name(), item.type(), item.serialNumber(), ItemStatus.DAMAGED,
-                    notes -> markItem(item, ItemStatus.DAMAGED)
+                    item, VerificationStatus.PRESENT_DAMAGED,
+                    result -> markItem(item, compartmentId, result.status(), result.notes(), result.quantityFound())
             );
             dialog.open();
         });
@@ -245,27 +350,78 @@ public class InventoryCheckView extends VerticalLayout implements HasUrlParamete
         return buttons;
     }
 
-    private void markItem(EquipmentItem item, ItemStatus status) {
-        ItemStatus previousStatus = itemStatuses.get(item.id());
-        itemStatuses.put(item.id(), status);
+    private void markItem(CheckableItem item, CompartmentId compartmentId,
+                          VerificationStatus status, String notes, BigDecimal quantityFound) {
+        try {
+            Quantity qtyFound = quantityFound != null ? new Quantity(quantityFound) : null;
+            Quantity qtyExpected = item.requiredQuantity() != null
+                    ? new Quantity(item.requiredQuantity())
+                    : null;
 
-        if (previousStatus == null || previousStatus == ItemStatus.UNCHECKED) {
-            checkedItems++;
+            ItemVerificationRequest request = new ItemVerificationRequest(
+                    currentCheck.id(),
+                    item.equipmentItemId(),
+                    item.consumableStockId(),
+                    compartmentId,
+                    null, // manifestEntryId - not used in basic flow
+                    status,
+                    notes,
+                    qtyFound,
+                    qtyExpected
+            );
+
+            inventoryCheckService.verifyItem(request, getCurrentUser().getUserId());
+
+            // Track locally for UI
+            String itemUniqueId = getItemUniqueId(item);
+            verifiedItemIds.add(itemUniqueId);
+
+            // Refresh the check summary to get updated counts
+            currentCheck = inventoryCheckService.getCheck(currentCheck.id());
+
+            updateItemsList();
+            updateProgress();
+
+            String statusLabel = switch (status) {
+                case PRESENT -> "present";
+                case MISSING -> "missing";
+                case PRESENT_DAMAGED -> "damaged";
+                default -> status.getLiteral().toLowerCase();
+            };
+            Notification.show(item.name() + " marked as " + statusLabel,
+                    2000, Notification.Position.BOTTOM_CENTER);
+
+        } catch (ShiftInventoryCheckService.ItemAlreadyVerifiedException e) {
+            Notification.show("This item has already been verified",
+                            3000, Notification.Position.MIDDLE)
+                    .addThemeVariants(NotificationVariant.LUMO_WARNING);
+            verifiedItemIds.add(getItemUniqueId(item));
+            updateItemsList();
+        } catch (ShiftInventoryCheckService.QuantityDiscrepancyRequiresNotesException e) {
+            Notification.show("Notes are required for quantity discrepancies greater than 20%",
+                            3000, Notification.Position.MIDDLE)
+                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+        } catch (Exception e) {
+            Notification.show("Error verifying item: " + e.getMessage(),
+                            3000, Notification.Position.MIDDLE)
+                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
         }
-
-        updateItemsList();
-        updateProgress();
     }
 
     private void updateProgress() {
         progressText.setText(getProgressText());
-        progressBar.setValue((double) checkedItems / totalItems);
+        progressBar.setValue(getProgressValue());
+    }
+
+    private double getProgressValue() {
+        if (currentCheck.totalItems() == 0) return 0;
+        return (double) currentCheck.verifiedCount() / currentCheck.totalItems();
     }
 
     private String getProgressText() {
         return String.format("%d of %d items • Compartment %d of %d",
-                checkedItems, totalItems,
-                currentCompartmentIndex + 1, compartments.size());
+                currentCheck.verifiedCount(), currentCheck.totalItems(),
+                currentCompartmentIndex + 1, apparatusDetails.compartments().size());
     }
 
     private HorizontalLayout createFooter() {
@@ -273,7 +429,8 @@ public class InventoryCheckView extends VerticalLayout implements HasUrlParamete
         summaryButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         summaryButton.addClassName("summary-btn");
         summaryButton.addClickListener(e ->
-                getUI().ifPresent(ui -> ui.navigate("check/" + apparatusId + "/summary"))
+                getUI().ifPresent(ui -> ui.navigate(
+                        "check/" + apparatusId.toString() + "/summary/" + currentCheck.id().toString()))
         );
 
         HorizontalLayout footer = new HorizontalLayout(summaryButton);
@@ -283,65 +440,5 @@ public class InventoryCheckView extends VerticalLayout implements HasUrlParamete
         footer.addClassName("check-footer");
 
         return footer;
-    }
-
-    private String getApparatusName(String id) {
-        return switch (id) {
-            case "1" -> "Engine 1";
-            case "2" -> "Ladder 2";
-            case "3" -> "Rescue 3";
-            default -> "Unknown Apparatus";
-        };
-    }
-
-    private List<CompartmentData> getMockCompartments() {
-        return List.of(
-                new CompartmentData("1", "Driver Side", List.of(
-                        new EquipmentItem("101", "SCBA Pack #1", "SCBA", "SCBA-2024-001"),
-                        new EquipmentItem("102", "SCBA Pack #2", "SCBA", "SCBA-2024-002"),
-                        new EquipmentItem("103", "Halligan Bar", "Forcible Entry", "HB-2023-015"),
-                        new EquipmentItem("104", "Flat Head Axe", "Forcible Entry", "AXE-2023-008"),
-                        new EquipmentItem("105", "Pike Pole 6ft", "Overhaul", "PP6-2022-003")
-                )),
-                new CompartmentData("2", "Officer Side", List.of(
-                        new EquipmentItem("201", "Thermal Imaging Camera", "Search & Rescue", "TIC-2024-001"),
-                        new EquipmentItem("202", "Portable Radio #1", "Communications", "RAD-2024-101"),
-                        new EquipmentItem("203", "Portable Radio #2", "Communications", "RAD-2024-102"),
-                        new EquipmentItem("204", "First Aid Kit", "Medical", "FAK-2024-001"),
-                        new EquipmentItem("205", "AED Unit", "Medical", "AED-2023-005")
-                )),
-                new CompartmentData("3", "Rear", List.of(
-                        new EquipmentItem("301", "Attack Hose 1.75\"", "Hose", "AH175-2024-001"),
-                        new EquipmentItem("302", "Supply Hose 4\"", "Hose", "SH4-2024-001"),
-                        new EquipmentItem("303", "Nozzle - Fog", "Nozzle", "NF-2024-001"),
-                        new EquipmentItem("304", "Nozzle - Smooth Bore", "Nozzle", "NSB-2024-001"),
-                        new EquipmentItem("305", "Portable Pump", "Pump", "PP-2023-002"),
-                        new EquipmentItem("306", "Generator", "Power", "GEN-2023-001")
-                )),
-                new CompartmentData("4", "Top/Roof", List.of(
-                        new EquipmentItem("401", "Ground Ladder 14ft", "Ladder", "GL14-2024-001"),
-                        new EquipmentItem("402", "Roof Ladder 16ft", "Ladder", "RL16-2024-001"),
-                        new EquipmentItem("403", "Extension Ladder 24ft", "Ladder", "EL24-2023-001"),
-                        new EquipmentItem("404", "Attic Ladder 10ft", "Ladder", "AL10-2024-001")
-                ))
-        );
-    }
-
-    private record CompartmentData(String id, String name, List<EquipmentItem> items) {}
-    private record EquipmentItem(String id, String name, String type, String serialNumber) {}
-
-    enum ItemStatus {
-        UNCHECKED("Not Checked", "unchecked"),
-        PRESENT("Present", "present"),
-        MISSING("Missing", "missing"),
-        DAMAGED("Damaged", "damaged");
-
-        final String label;
-        final String cssClass;
-
-        ItemStatus(String label, String cssClass) {
-            this.label = label;
-            this.cssClass = cssClass;
-        }
     }
 }

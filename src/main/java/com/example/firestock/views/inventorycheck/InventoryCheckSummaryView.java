@@ -1,8 +1,15 @@
 package com.example.firestock.views.inventorycheck;
 
+import com.example.firestock.domain.primitives.ids.ApparatusId;
+import com.example.firestock.domain.primitives.ids.InventoryCheckId;
+import com.example.firestock.inventorycheck.ApparatusDetails;
+import com.example.firestock.inventorycheck.InventoryCheckSummary;
+import com.example.firestock.inventorycheck.ShiftInventoryCheckService;
+import com.example.firestock.jooq.enums.CheckStatus;
 import com.example.firestock.views.MainLayout;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
@@ -19,22 +26,29 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.PermitAll;
+import org.springframework.security.access.AccessDeniedException;
 
-import java.util.List;
+import java.util.UUID;
 
 /**
  * Summary view showing inventory check results.
- * Displays statistics and list of issues (missing/damaged items).
+ * Displays statistics and allows completing or abandoning the check.
  */
-@Route(value = "check/:apparatusId/summary", layout = MainLayout.class)
+@Route(value = "check/:apparatusId/summary/:checkId", layout = MainLayout.class)
 @PageTitle("Check Summary | FireStock")
 @PermitAll
 public class InventoryCheckSummaryView extends VerticalLayout implements BeforeEnterObserver {
 
-    private String apparatusId;
+    private final ShiftInventoryCheckService inventoryCheckService;
+
+    private ApparatusId apparatusId;
+    private InventoryCheckId checkId;
+    private InventoryCheckSummary checkSummary;
     private String apparatusName;
 
-    public InventoryCheckSummaryView() {
+    public InventoryCheckSummaryView(ShiftInventoryCheckService inventoryCheckService) {
+        this.inventoryCheckService = inventoryCheckService;
+
         addClassName("inventory-summary-view");
         setSizeFull();
         setPadding(false);
@@ -43,9 +57,32 @@ public class InventoryCheckSummaryView extends VerticalLayout implements BeforeE
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        this.apparatusId = event.getRouteParameters().get("apparatusId").orElse("1");
-        this.apparatusName = getApparatusName(apparatusId);
-        buildUI();
+        try {
+            String apparatusIdParam = event.getRouteParameters().get("apparatusId").orElse("");
+            String checkIdParam = event.getRouteParameters().get("checkId").orElse("");
+
+            this.apparatusId = new ApparatusId(UUID.fromString(apparatusIdParam));
+            this.checkId = new InventoryCheckId(UUID.fromString(checkIdParam));
+
+            // Load the check summary
+            this.checkSummary = inventoryCheckService.getCheck(checkId);
+
+            // Load apparatus details for the name
+            ApparatusDetails apparatusDetails = inventoryCheckService.getApparatusDetails(apparatusId);
+            this.apparatusName = apparatusDetails.unitNumber().value();
+
+            buildUI();
+        } catch (IllegalArgumentException e) {
+            showErrorAndNavigateBack("Invalid apparatus or check ID");
+        } catch (AccessDeniedException e) {
+            showErrorAndNavigateBack("You don't have access to this check");
+        }
+    }
+
+    private void showErrorAndNavigateBack(String message) {
+        Notification.show(message, 3000, Notification.Position.MIDDLE)
+                .addThemeVariants(NotificationVariant.LUMO_ERROR);
+        getUI().ifPresent(ui -> ui.navigate(ApparatusSelectionView.class));
     }
 
     private void buildUI() {
@@ -53,7 +90,7 @@ public class InventoryCheckSummaryView extends VerticalLayout implements BeforeE
 
         add(createHeader());
         add(createStatisticsSection());
-        add(createIssuesSection());
+        add(createIssuesSummarySection());
         add(createFooter());
     }
 
@@ -62,7 +99,7 @@ public class InventoryCheckSummaryView extends VerticalLayout implements BeforeE
         backButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         backButton.addClassName("back-button");
         backButton.addClickListener(e ->
-                getUI().ifPresent(ui -> ui.navigate(InventoryCheckView.class, apparatusId))
+                getUI().ifPresent(ui -> ui.navigate(InventoryCheckView.class, apparatusId.toString()))
         );
 
         VerticalLayout titleSection = new VerticalLayout();
@@ -87,19 +124,22 @@ public class InventoryCheckSummaryView extends VerticalLayout implements BeforeE
     }
 
     private HorizontalLayout createStatisticsSection() {
-        // Mock statistics data
-        SummaryStats stats = getMockStats();
+        int total = checkSummary.totalItems();
+        int verified = checkSummary.verifiedCount();
+        int issues = checkSummary.issuesFoundCount();
+        int present = verified - issues;
+        int remaining = total - verified;
 
-        Div totalCard = createStatCard("Total Items", String.valueOf(stats.total()), "stat-total", VaadinIcon.LIST);
-        Div presentCard = createStatCard("Present", String.valueOf(stats.present()), "stat-present", VaadinIcon.CHECK);
-        Div missingCard = createStatCard("Missing", String.valueOf(stats.missing()), "stat-missing", VaadinIcon.CLOSE);
-        Div damagedCard = createStatCard("Damaged", String.valueOf(stats.damaged()), "stat-damaged", VaadinIcon.WARNING);
+        Div totalCard = createStatCard("Total Items", String.valueOf(total), "stat-total", VaadinIcon.LIST);
+        Div presentCard = createStatCard("Present", String.valueOf(present), "stat-present", VaadinIcon.CHECK);
+        Div issuesCard = createStatCard("Issues", String.valueOf(issues), "stat-issues", VaadinIcon.WARNING);
+        Div remainingCard = createStatCard("Remaining", String.valueOf(remaining), "stat-remaining", VaadinIcon.HOURGLASS);
 
         HorizontalLayout statsRow1 = new HorizontalLayout(totalCard, presentCard);
         statsRow1.setWidthFull();
         statsRow1.setSpacing(true);
 
-        HorizontalLayout statsRow2 = new HorizontalLayout(missingCard, damagedCard);
+        HorizontalLayout statsRow2 = new HorizontalLayout(issuesCard, remainingCard);
         statsRow2.setWidthFull();
         statsRow2.setSpacing(true);
 
@@ -136,28 +176,44 @@ public class InventoryCheckSummaryView extends VerticalLayout implements BeforeE
         return card;
     }
 
-    private VerticalLayout createIssuesSection() {
-        H3 issuesHeader = new H3("Issues Found");
+    private VerticalLayout createIssuesSummarySection() {
+        H3 issuesHeader = new H3("Check Status");
         issuesHeader.addClassName("issues-header");
 
-        VerticalLayout issuesList = new VerticalLayout();
-        issuesList.setPadding(false);
-        issuesList.setSpacing(true);
-        issuesList.addClassName("issues-list");
+        VerticalLayout statusContent = new VerticalLayout();
+        statusContent.setPadding(false);
+        statusContent.setSpacing(true);
 
-        List<IssueItem> issues = getMockIssues();
+        int remaining = checkSummary.totalItems() - checkSummary.verifiedCount();
+        int issues = checkSummary.issuesFoundCount();
 
-        if (issues.isEmpty()) {
-            Span noIssues = new Span("No issues found. All items accounted for!");
-            noIssues.addClassName("no-issues");
-            issuesList.add(noIssues);
-        } else {
-            for (IssueItem issue : issues) {
-                issuesList.add(createIssueCard(issue));
-            }
+        if (remaining > 0) {
+            Span remainingInfo = new Span(String.format("%d items still need to be verified", remaining));
+            remainingInfo.addClassName("status-info");
+            remainingInfo.addClassName("status-warning");
+            statusContent.add(remainingInfo);
         }
 
-        VerticalLayout section = new VerticalLayout(issuesHeader, issuesList);
+        if (issues > 0) {
+            Span issuesInfo = new Span(String.format("%d issues found (missing or damaged items)", issues));
+            issuesInfo.addClassName("status-info");
+            issuesInfo.addClassName("status-issues");
+            statusContent.add(issuesInfo);
+        }
+
+        if (remaining == 0 && issues == 0) {
+            Span allGood = new Span("All items verified and accounted for!");
+            allGood.addClassName("status-info");
+            allGood.addClassName("status-success");
+            statusContent.add(allGood);
+        } else if (remaining == 0 && issues > 0) {
+            Span readyWithIssues = new Span("All items verified. Issues have been logged for follow-up.");
+            readyWithIssues.addClassName("status-info");
+            readyWithIssues.addClassName("status-warning");
+            statusContent.add(readyWithIssues);
+        }
+
+        VerticalLayout section = new VerticalLayout(issuesHeader, statusContent);
         section.setPadding(true);
         section.setSpacing(true);
         section.addClassName("issues-section");
@@ -165,64 +221,33 @@ public class InventoryCheckSummaryView extends VerticalLayout implements BeforeE
         return section;
     }
 
-    private Div createIssueCard(IssueItem issue) {
-        Div card = new Div();
-        card.addClassName("issue-card");
-        card.addClassName("issue-" + issue.status().toLowerCase());
-
-        Icon statusIcon = issue.status().equals("Missing")
-                ? VaadinIcon.CLOSE.create()
-                : VaadinIcon.WARNING.create();
-        statusIcon.addClassName("issue-icon");
-
-        Span itemName = new Span(issue.itemName());
-        itemName.addClassName("issue-item-name");
-
-        Span statusBadge = new Span(issue.status());
-        statusBadge.addClassName("issue-status-badge");
-        statusBadge.addClassName("status-" + issue.status().toLowerCase());
-
-        HorizontalLayout topRow = new HorizontalLayout(statusIcon, itemName, statusBadge);
-        topRow.setAlignItems(FlexComponent.Alignment.CENTER);
-        topRow.setWidthFull();
-
-        Span compartment = new Span("Compartment: " + issue.compartment());
-        compartment.addClassName("issue-compartment");
-
-        Span notes = new Span(issue.notes());
-        notes.addClassName("issue-notes");
-
-        VerticalLayout content = new VerticalLayout(topRow, compartment, notes);
-        content.setPadding(false);
-        content.setSpacing(false);
-
-        card.add(content);
-        return card;
-    }
-
     private HorizontalLayout createFooter() {
         Button continueButton = new Button("Continue Checking", new Icon(VaadinIcon.ARROW_LEFT));
         continueButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         continueButton.addClassName("continue-btn");
         continueButton.addClickListener(e ->
-                getUI().ifPresent(ui -> ui.navigate(InventoryCheckView.class, apparatusId))
+                getUI().ifPresent(ui -> ui.navigate(InventoryCheckView.class, apparatusId.toString()))
         );
+
+        Button abandonButton = new Button("Abandon Check", new Icon(VaadinIcon.TRASH));
+        abandonButton.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
+        abandonButton.addClassName("abandon-btn");
+        abandonButton.addClickListener(e -> showAbandonConfirmation());
 
         Button completeButton = new Button("Complete Check", new Icon(VaadinIcon.CHECK));
         completeButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
         completeButton.addClassName("complete-btn");
-        completeButton.addClickListener(e -> {
-            Notification notification = Notification.show(
-                    "Inventory check completed for " + apparatusName,
-                    3000,
-                    Notification.Position.MIDDLE
-            );
-            notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+        completeButton.addClickListener(e -> completeCheck());
 
-            getUI().ifPresent(ui -> ui.navigate(ApparatusSelectionView.class));
-        });
+        // Disable complete button if check is already completed or not all items verified
+        if (checkSummary.status() == CheckStatus.COMPLETED ||
+                checkSummary.status() == CheckStatus.ABANDONED) {
+            completeButton.setEnabled(false);
+            abandonButton.setEnabled(false);
+            continueButton.setEnabled(false);
+        }
 
-        HorizontalLayout footer = new HorizontalLayout(continueButton, completeButton);
+        HorizontalLayout footer = new HorizontalLayout(abandonButton, continueButton, completeButton);
         footer.setWidthFull();
         footer.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
         footer.setPadding(true);
@@ -232,26 +257,72 @@ public class InventoryCheckSummaryView extends VerticalLayout implements BeforeE
         return footer;
     }
 
-    private String getApparatusName(String id) {
-        return switch (id) {
-            case "1" -> "Engine 1";
-            case "2" -> "Ladder 2";
-            case "3" -> "Rescue 3";
-            default -> "Unknown Apparatus";
-        };
+    private void showAbandonConfirmation() {
+        ConfirmDialog dialog = new ConfirmDialog();
+        dialog.setHeader("Abandon Check?");
+        dialog.setText("Are you sure you want to abandon this inventory check? " +
+                "This action cannot be undone, and you will need to start a new check.");
+
+        dialog.setCancelable(true);
+        dialog.setCancelText("Cancel");
+
+        dialog.setConfirmText("Abandon");
+        dialog.setConfirmButtonTheme("error primary");
+        dialog.addConfirmListener(e -> abandonCheck());
+
+        dialog.open();
     }
 
-    private SummaryStats getMockStats() {
-        return new SummaryStats(20, 17, 2, 1);
+    private void completeCheck() {
+        try {
+            inventoryCheckService.completeCheck(checkId);
+
+            Notification notification = Notification.show(
+                    "Inventory check completed for " + apparatusName,
+                    3000,
+                    Notification.Position.MIDDLE
+            );
+            notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+
+            getUI().ifPresent(ui -> ui.navigate(ApparatusSelectionView.class));
+
+        } catch (ShiftInventoryCheckService.IncompleteCheckException e) {
+            Notification notification = Notification.show(
+                    e.getMessage(),
+                    5000,
+                    Notification.Position.MIDDLE
+            );
+            notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+        } catch (Exception e) {
+            Notification notification = Notification.show(
+                    "Error completing check: " + e.getMessage(),
+                    5000,
+                    Notification.Position.MIDDLE
+            );
+            notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+        }
     }
 
-    private List<IssueItem> getMockIssues() {
-        return List.of(
-                new IssueItem("SCBA Pack #2", "Missing", "Driver Side", "Last seen during last shift change"),
-                new IssueItem("Portable Radio #1", "Damaged", "Officer Side", "Cracked display, still functional")
-        );
-    }
+    private void abandonCheck() {
+        try {
+            inventoryCheckService.abandonCheck(checkId);
 
-    private record SummaryStats(int total, int present, int missing, int damaged) {}
-    private record IssueItem(String itemName, String status, String compartment, String notes) {}
+            Notification notification = Notification.show(
+                    "Inventory check abandoned",
+                    3000,
+                    Notification.Position.MIDDLE
+            );
+            notification.addThemeVariants(NotificationVariant.LUMO_CONTRAST);
+
+            getUI().ifPresent(ui -> ui.navigate(ApparatusSelectionView.class));
+
+        } catch (Exception e) {
+            Notification notification = Notification.show(
+                    "Error abandoning check: " + e.getMessage(),
+                    5000,
+                    Notification.Position.MIDDLE
+            );
+            notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+        }
+    }
 }

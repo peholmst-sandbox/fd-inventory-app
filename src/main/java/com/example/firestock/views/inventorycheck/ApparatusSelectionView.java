@@ -1,5 +1,8 @@
 package com.example.firestock.views.inventorycheck;
 
+import com.example.firestock.inventorycheck.ApparatusSummary;
+import com.example.firestock.inventorycheck.ShiftInventoryCheckService;
+import com.example.firestock.security.FirestockUserDetails;
 import com.example.firestock.views.MainLayout;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
@@ -13,8 +16,8 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.PermitAll;
+import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -29,7 +32,11 @@ public class ApparatusSelectionView extends VerticalLayout {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d, yyyy");
 
-    public ApparatusSelectionView() {
+    private final ShiftInventoryCheckService inventoryCheckService;
+
+    public ApparatusSelectionView(ShiftInventoryCheckService inventoryCheckService) {
+        this.inventoryCheckService = inventoryCheckService;
+
         addClassName("apparatus-selection-view");
         setSizeFull();
         setPadding(true);
@@ -48,24 +55,44 @@ public class ApparatusSelectionView extends VerticalLayout {
         cardsContainer.setSpacing(true);
         cardsContainer.addClassName("apparatus-cards");
 
-        getMockApparatusData().forEach(apparatus ->
-                cardsContainer.add(createApparatusCard(apparatus))
-        );
+        List<ApparatusSummary> apparatusList = getApparatusForCurrentUser();
+
+        if (apparatusList.isEmpty()) {
+            Span noApparatus = new Span("No apparatus assigned to your station.");
+            noApparatus.addClassName("text-secondary");
+            cardsContainer.add(noApparatus);
+        } else {
+            apparatusList.forEach(apparatus ->
+                    cardsContainer.add(createApparatusCard(apparatus))
+            );
+        }
 
         add(cardsContainer);
     }
 
-    private Div createApparatusCard(ApparatusData apparatus) {
+    private List<ApparatusSummary> getApparatusForCurrentUser() {
+        FirestockUserDetails user = (FirestockUserDetails) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+
+        var primaryStationId = user.getPrimaryStationId();
+        if (primaryStationId == null) {
+            return List.of();
+        }
+
+        return inventoryCheckService.getApparatusForStation(primaryStationId);
+    }
+
+    private Div createApparatusCard(ApparatusSummary apparatus) {
         Div card = new Div();
         card.addClassName("apparatus-card");
 
         Icon truckIcon = VaadinIcon.TRUCK.create();
         truckIcon.addClassName("apparatus-icon");
 
-        H3 unitNumber = new H3(apparatus.unitNumber());
+        H3 unitNumber = new H3(apparatus.unitNumber().value());
         unitNumber.addClassName("apparatus-unit");
 
-        Span stationInfo = new Span(apparatus.station());
+        Span stationInfo = new Span(apparatus.stationName());
         stationInfo.addClassName("apparatus-station");
 
         VerticalLayout textContent = new VerticalLayout(unitNumber, stationInfo);
@@ -79,7 +106,10 @@ public class ApparatusSelectionView extends VerticalLayout {
         Span lastCheckLabel = new Span("Last check: ");
         lastCheckLabel.addClassName("text-secondary");
 
-        Span lastCheckDate = new Span(apparatus.lastCheckDate().format(DATE_FORMATTER));
+        String lastCheckDateText = apparatus.lastCheckDate() != null
+                ? apparatus.lastCheckDate().format(DATE_FORMATTER)
+                : "Never";
+        Span lastCheckDate = new Span(lastCheckDateText);
         lastCheckDate.addClassName("last-check-date");
 
         HorizontalLayout lastCheckInfo = new HorizontalLayout(lastCheckLabel, lastCheckDate);
@@ -93,20 +123,10 @@ public class ApparatusSelectionView extends VerticalLayout {
 
         card.addClickListener(e ->
                 card.getUI().ifPresent(ui ->
-                        ui.navigate(InventoryCheckView.class, apparatus.id())
+                        ui.navigate(InventoryCheckView.class, apparatus.id().toString())
                 )
         );
 
         return card;
     }
-
-    private List<ApparatusData> getMockApparatusData() {
-        return List.of(
-                new ApparatusData("1", "Engine 1", "Station 1 - Downtown", LocalDate.now().minusDays(1)),
-                new ApparatusData("2", "Ladder 2", "Station 2 - Westside", LocalDate.now().minusDays(2)),
-                new ApparatusData("3", "Rescue 3", "Station 3 - Industrial", LocalDate.now().minusDays(3))
-        );
-    }
-
-    private record ApparatusData(String id, String unitNumber, String station, LocalDate lastCheckDate) {}
 }

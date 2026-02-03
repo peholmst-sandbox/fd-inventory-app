@@ -1,5 +1,7 @@
 package com.example.firestock.views.inventorycheck;
 
+import com.example.firestock.inventorycheck.CheckableItem;
+import com.example.firestock.jooq.enums.VerificationStatus;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -10,8 +12,10 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextArea;
 
+import java.math.BigDecimal;
 import java.util.function.Consumer;
 
 /**
@@ -21,50 +25,100 @@ import java.util.function.Consumer;
 class ItemVerificationDialog extends Dialog {
 
     private final TextArea notesField;
+    private final NumberField quantityField;
+    private final CheckableItem item;
+
+    /**
+     * Result of the verification dialog.
+     */
+    public record VerificationResult(
+            VerificationStatus status,
+            String notes,
+            BigDecimal quantityFound
+    ) {}
 
     public ItemVerificationDialog(
-            String itemName,
-            String itemType,
-            String serialNumber,
-            InventoryCheckView.ItemStatus status,
-            Consumer<String> onConfirm
+            CheckableItem item,
+            VerificationStatus status,
+            Consumer<VerificationResult> onConfirm
     ) {
+        this.item = item;
         addClassName("item-verification-dialog");
         setDraggable(false);
         setCloseOnOutsideClick(false);
 
-        H3 title = new H3("Mark as " + status.label);
+        H3 title = new H3("Mark as " + getStatusLabel(status));
         title.addClassName("dialog-title");
-        title.addClassName("status-" + status.cssClass);
+        title.addClassName("status-" + getStatusCssClass(status));
 
-        Span nameSpan = new Span(itemName);
+        Span nameSpan = new Span(item.name());
         nameSpan.addClassName("dialog-item-name");
 
-        Span typeSpan = new Span(itemType);
+        Span typeSpan = new Span(item.typeName());
         typeSpan.addClassName("dialog-item-type");
 
-        Span serialSpan = new Span("S/N: " + serialNumber);
-        serialSpan.addClassName("dialog-item-serial");
-
-        VerticalLayout itemDetails = new VerticalLayout(nameSpan, typeSpan, serialSpan);
+        VerticalLayout itemDetails = new VerticalLayout(nameSpan, typeSpan);
         itemDetails.setPadding(false);
         itemDetails.setSpacing(false);
         itemDetails.addClassName("dialog-item-details");
 
-        notesField = new TextArea("Notes (optional)");
+        // Add serial number for equipment
+        if (item.serialNumber() != null) {
+            Span serialSpan = new Span("S/N: " + item.serialNumber().value());
+            serialSpan.addClassName("dialog-item-serial");
+            itemDetails.add(serialSpan);
+        }
+
+        // Add quantity field for consumables
+        quantityField = new NumberField("Quantity Found");
+        quantityField.setVisible(item.isConsumable());
+        if (item.isConsumable()) {
+            quantityField.setMin(0);
+            quantityField.setStep(0.01);
+            if (item.currentQuantity() != null) {
+                quantityField.setValue(item.currentQuantity().value().doubleValue());
+            }
+            String expectedLabel = item.requiredQuantity() != null
+                    ? String.format(" (Expected: %s)", item.requiredQuantity().toPlainString())
+                    : "";
+            quantityField.setHelperText("Enter the actual quantity found" + expectedLabel);
+            quantityField.setWidthFull();
+        }
+
+        notesField = new TextArea("Notes" + (requiresNotes(status) ? "" : " (optional)"));
         notesField.setPlaceholder(getNotesPlaceholder(status));
         notesField.setWidthFull();
         notesField.setMinHeight("100px");
         notesField.addClassName("dialog-notes");
+        if (requiresNotes(status)) {
+            notesField.setRequired(true);
+            notesField.setRequiredIndicatorVisible(true);
+        }
 
         Button cancelButton = new Button("Cancel", e -> close());
         cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
-        Button confirmButton = new Button("Confirm " + status.label, getStatusIcon(status));
+        Button confirmButton = new Button("Confirm " + getStatusLabel(status), getStatusIcon(status));
         confirmButton.addClassName("confirm-btn");
-        confirmButton.addClassName("confirm-" + status.cssClass);
+        confirmButton.addClassName("confirm-" + getStatusCssClass(status));
         confirmButton.addClickListener(e -> {
-            onConfirm.accept(notesField.getValue());
+            // Validate required notes
+            if (requiresNotes(status) && (notesField.getValue() == null || notesField.getValue().isBlank())) {
+                notesField.setErrorMessage("Notes are required for this status");
+                notesField.setInvalid(true);
+                return;
+            }
+
+            BigDecimal qty = null;
+            if (item.isConsumable() && quantityField.getValue() != null) {
+                qty = BigDecimal.valueOf(quantityField.getValue());
+            }
+
+            onConfirm.accept(new VerificationResult(
+                    status,
+                    notesField.getValue(),
+                    qty
+            ));
             close();
         });
 
@@ -73,7 +127,11 @@ class ItemVerificationDialog extends Dialog {
         buttons.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
         buttons.addClassName("dialog-buttons");
 
-        VerticalLayout content = new VerticalLayout(title, itemDetails, notesField, buttons);
+        VerticalLayout content = new VerticalLayout(title, itemDetails);
+        if (item.isConsumable()) {
+            content.add(quantityField);
+        }
+        content.add(notesField, buttons);
         content.setPadding(true);
         content.setSpacing(true);
         content.addClassName("dialog-content");
@@ -81,19 +139,47 @@ class ItemVerificationDialog extends Dialog {
         add(content);
     }
 
-    private String getNotesPlaceholder(InventoryCheckView.ItemStatus status) {
+    private boolean requiresNotes(VerificationStatus status) {
+        return status == VerificationStatus.MISSING || status == VerificationStatus.PRESENT_DAMAGED;
+    }
+
+    private String getNotesPlaceholder(VerificationStatus status) {
         return switch (status) {
             case MISSING -> "Where was it last seen? Any details about the missing item...";
-            case DAMAGED -> "Describe the damage, severity, and if the item is still usable...";
+            case PRESENT_DAMAGED -> "Describe the damage, severity, and if the item is still usable...";
+            case EXPIRED -> "Describe the expiry details...";
+            case LOW_QUANTITY -> "Describe the quantity discrepancy...";
             default -> "Add any relevant notes...";
         };
     }
 
-    private Icon getStatusIcon(InventoryCheckView.ItemStatus status) {
+    private Icon getStatusIcon(VerificationStatus status) {
         return switch (status) {
             case MISSING -> new Icon(VaadinIcon.CLOSE);
-            case DAMAGED -> new Icon(VaadinIcon.WARNING);
+            case PRESENT_DAMAGED, EXPIRED, LOW_QUANTITY -> new Icon(VaadinIcon.WARNING);
             default -> new Icon(VaadinIcon.CHECK);
+        };
+    }
+
+    private String getStatusLabel(VerificationStatus status) {
+        return switch (status) {
+            case PRESENT -> "Present";
+            case PRESENT_DAMAGED -> "Damaged";
+            case MISSING -> "Missing";
+            case EXPIRED -> "Expired";
+            case LOW_QUANTITY -> "Low Quantity";
+            case SKIPPED -> "Skipped";
+        };
+    }
+
+    private String getStatusCssClass(VerificationStatus status) {
+        return switch (status) {
+            case PRESENT -> "present";
+            case PRESENT_DAMAGED -> "damaged";
+            case MISSING -> "missing";
+            case EXPIRED -> "expired";
+            case LOW_QUANTITY -> "low-quantity";
+            case SKIPPED -> "skipped";
         };
     }
 }
