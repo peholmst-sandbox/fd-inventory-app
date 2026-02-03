@@ -1,6 +1,8 @@
 package com.example.firestock.views;
 
+import com.example.firestock.jooq.enums.UserRole;
 import com.example.firestock.security.FirestockUserDetails;
+import com.example.firestock.views.audit.AuditApparatusSelectionView;
 import com.example.firestock.views.inventorycheck.ApparatusSelectionView;
 import com.example.firestock.views.issues.ReportIssueView;
 import com.vaadin.flow.component.applayout.AppLayout;
@@ -83,6 +85,20 @@ public class MainLayout extends AppLayout {
                 VaadinIcon.EXCLAMATION_CIRCLE.create()
         );
         nav.addItem(reportIssue);
+
+        // Add Formal Audits for maintenance technicians
+        authenticationContext.getAuthenticatedUser(FirestockUserDetails.class)
+                .ifPresent(user -> {
+                    if (user.getUserRole() == UserRole.MAINTENANCE_TECHNICIAN ||
+                        user.getUserRole() == UserRole.SYSTEM_ADMINISTRATOR) {
+                        SideNavItem formalAudit = new SideNavItem(
+                                "Formal Audits",
+                                AuditApparatusSelectionView.class,
+                                VaadinIcon.CLIPBOARD_CHECK.create()
+                        );
+                        nav.addItem(formalAudit);
+                    }
+                });
 
         addToDrawer(nav);
     }

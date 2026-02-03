@@ -242,19 +242,19 @@
                                 <forcedType>
                                     <userType>com.example.firestock.domain.primitives.ids.StationId</userType>
                                     <converter>com.example.firestock.jooq.converters.ids.StationIdConverter</converter>
-                                    <includeExpression>station\.id|apparatus\.station_id|user_station_assignment\.station_id|consumable_stock\.station_id|equipment_item\.station_id|equipment_item\.home_station_id|inventory_check\.station_id|issue\.station_id|transfer_record\.source_station_id|transfer_record\.destination_station_id</includeExpression>
+                                    <includeExpression>station\.id|apparatus\.station_id|user_station_assignment\.station_id|consumable_stock\.station_id|equipment_item\.station_id|equipment_item\.home_station_id|inventory_check\.station_id|issue\.station_id|transfer_record\.source_station_id|transfer_record\.destination_station_id|formal_audit\.station_id</includeExpression>
                                     <includeTypes>uuid</includeTypes>
                                 </forcedType>
                                 <forcedType>
                                     <userType>com.example.firestock.domain.primitives.ids.ApparatusId</userType>
                                     <converter>com.example.firestock.jooq.converters.ids.ApparatusIdConverter</converter>
-                                    <includeExpression>apparatus\.id|compartment\.apparatus_id|consumable_stock\.apparatus_id|equipment_item\.apparatus_id|manifest_entry\.apparatus_id|inventory_check\.apparatus_id|issue\.apparatus_id|transfer_record\.source_apparatus_id|transfer_record\.destination_apparatus_id</includeExpression>
+                                    <includeExpression>apparatus\.id|compartment\.apparatus_id|consumable_stock\.apparatus_id|equipment_item\.apparatus_id|manifest_entry\.apparatus_id|inventory_check\.apparatus_id|issue\.apparatus_id|transfer_record\.source_apparatus_id|transfer_record\.destination_apparatus_id|formal_audit\.apparatus_id</includeExpression>
                                     <includeTypes>uuid</includeTypes>
                                 </forcedType>
                                 <forcedType>
                                     <userType>com.example.firestock.domain.primitives.ids.CompartmentId</userType>
                                     <converter>com.example.firestock.jooq.converters.ids.CompartmentIdConverter</converter>
-                                    <includeExpression>compartment\.id|consumable_stock\.compartment_id|equipment_item\.compartment_id|manifest_entry\.compartment_id|inventory_check_item\.compartment_id|transfer_record\.source_compartment_id|transfer_record\.destination_compartment_id</includeExpression>
+                                    <includeExpression>compartment\.id|consumable_stock\.compartment_id|equipment_item\.compartment_id|manifest_entry\.compartment_id|inventory_check_item\.compartment_id|transfer_record\.source_compartment_id|transfer_record\.destination_compartment_id|formal_audit_item\.compartment_id</includeExpression>
                                     <includeTypes>uuid</includeTypes>
                                 </forcedType>
                                 <forcedType>
@@ -266,25 +266,25 @@
                                 <forcedType>
                                     <userType>com.example.firestock.domain.primitives.ids.EquipmentItemId</userType>
                                     <converter>com.example.firestock.jooq.converters.ids.EquipmentItemIdConverter</converter>
-                                    <includeExpression>equipment_item\.id|inventory_check_item\.equipment_item_id|issue\.equipment_item_id|transfer_record\.equipment_item_id</includeExpression>
+                                    <includeExpression>equipment_item\.id|inventory_check_item\.equipment_item_id|issue\.equipment_item_id|transfer_record\.equipment_item_id|formal_audit_item\.equipment_item_id</includeExpression>
                                     <includeTypes>uuid</includeTypes>
                                 </forcedType>
                                 <forcedType>
                                     <userType>com.example.firestock.domain.primitives.ids.ConsumableStockId</userType>
                                     <converter>com.example.firestock.jooq.converters.ids.ConsumableStockIdConverter</converter>
-                                    <includeExpression>consumable_stock\.id|inventory_check_item\.consumable_stock_id|issue\.consumable_stock_id|restock_record\.consumable_stock_id</includeExpression>
+                                    <includeExpression>consumable_stock\.id|inventory_check_item\.consumable_stock_id|issue\.consumable_stock_id|restock_record\.consumable_stock_id|formal_audit_item\.consumable_stock_id</includeExpression>
                                     <includeTypes>uuid</includeTypes>
                                 </forcedType>
                                 <forcedType>
                                     <userType>com.example.firestock.domain.primitives.ids.ManifestEntryId</userType>
                                     <converter>com.example.firestock.jooq.converters.ids.ManifestEntryIdConverter</converter>
-                                    <includeExpression>manifest_entry\.id|inventory_check_item\.manifest_entry_id</includeExpression>
+                                    <includeExpression>manifest_entry\.id|inventory_check_item\.manifest_entry_id|formal_audit_item\.manifest_entry_id</includeExpression>
                                     <includeTypes>uuid</includeTypes>
                                 </forcedType>
                                 <forcedType>
                                     <userType>com.example.firestock.domain.primitives.ids.UserId</userType>
                                     <converter>com.example.firestock.jooq.converters.ids.UserIdConverter</converter>
-                                    <includeExpression>app_user\.id|user_station_assignment\.user_id|inventory_check\.performed_by_id|issue\.reported_by_id|issue\.acknowledged_by_id|issue\.resolved_by_id|transfer_record\.initiated_by_id|restock_record\.performed_by_id</includeExpression>
+                                    <includeExpression>app_user\.id|user_station_assignment\.user_id|inventory_check\.performed_by_id|issue\.reported_by_id|issue\.acknowledged_by_id|issue\.resolved_by_id|transfer_record\.initiated_by_id|restock_record\.performed_by_id|formal_audit\.performed_by_id</includeExpression>
                                     <includeTypes>uuid</includeTypes>
                                 </forcedType>
                                 <forcedType>
@@ -302,7 +302,7 @@
                                 <forcedType>
                                     <userType>com.example.firestock.domain.primitives.ids.IssueId</userType>
                                     <converter>com.example.firestock.jooq.converters.ids.IssueIdConverter</converter>
-                                    <includeExpression>issue\.id|issue_photo\.issue_id|inventory_check_item\.issue_id</includeExpression>
+                                    <includeExpression>issue\.id|issue_photo\.issue_id|inventory_check_item\.issue_id|formal_audit_item\.issue_id</includeExpression>
                                     <includeTypes>uuid</includeTypes>
                                 </forcedType>
                                 <forcedType>
@@ -321,6 +321,18 @@
                                     <userType>com.example.firestock.domain.primitives.ids.RestockRecordId</userType>
                                     <converter>com.example.firestock.jooq.converters.ids.RestockRecordIdConverter</converter>
                                     <includeExpression>restock_record\.id</includeExpression>
+                                    <includeTypes>uuid</includeTypes>
+                                </forcedType>
+                                <forcedType>
+                                    <userType>com.example.firestock.domain.primitives.ids.FormalAuditId</userType>
+                                    <converter>com.example.firestock.jooq.converters.ids.FormalAuditIdConverter</converter>
+                                    <includeExpression>formal_audit\.id|formal_audit_item\.formal_audit_id</includeExpression>
+                                    <includeTypes>uuid</includeTypes>
+                                </forcedType>
+                                <forcedType>
+                                    <userType>com.example.firestock.domain.primitives.ids.FormalAuditItemId</userType>
+                                    <converter>com.example.firestock.jooq.converters.ids.FormalAuditItemIdConverter</converter>
+                                    <includeExpression>formal_audit_item\.id</includeExpression>
                                     <includeTypes>uuid</includeTypes>
                                 </forcedType>
                                 <!-- String Converters -->
@@ -376,7 +388,7 @@
                                 <forcedType>
                                     <userType>com.example.firestock.domain.primitives.numbers.Quantity</userType>
                                     <converter>com.example.firestock.jooq.converters.numbers.QuantityConverter</converter>
-                                    <includeExpression>consumable_stock\.quantity|inventory_check_item\.quantity_found|inventory_check_item\.quantity_expected|restock_record\.quantity_before|restock_record\.quantity_after</includeExpression>
+                                    <includeExpression>consumable_stock\.quantity|inventory_check_item\.quantity_found|inventory_check_item\.quantity_expected|restock_record\.quantity_before|restock_record\.quantity_after|formal_audit_item\.quantity_found|formal_audit_item\.quantity_expected</includeExpression>
                                     <includeTypes>decimal|numeric</includeTypes>
                                 </forcedType>
                                 <forcedType>
