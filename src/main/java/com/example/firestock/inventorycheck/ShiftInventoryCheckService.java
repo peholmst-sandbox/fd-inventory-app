@@ -131,8 +131,7 @@ public class ShiftInventoryCheckService {
         stationAccess.requireApparatusAccess(apparatusId);
 
         // BR-01: Check for existing active check
-        var existingCheck = inventoryCheckRepository.findActiveByApparatusId(apparatusId);
-        if (existingCheck.isPresent()) {
+        if (inventoryCheckRepository.hasActiveCheckForApparatus(apparatusId)) {
             throw new ActiveCheckExistsException(
                 "An active inventory check already exists for this apparatus. " +
                 "Complete or abandon the existing check before starting a new one.");
