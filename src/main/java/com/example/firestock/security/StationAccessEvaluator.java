@@ -1,6 +1,7 @@
 package com.example.firestock.security;
 
 import com.example.firestock.domain.primitives.ids.ApparatusId;
+import com.example.firestock.domain.primitives.ids.FormalAuditId;
 import com.example.firestock.domain.primitives.ids.InventoryCheckId;
 import com.example.firestock.domain.primitives.ids.StationId;
 import org.jooq.DSLContext;
@@ -10,6 +11,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import static com.example.firestock.jooq.Tables.APPARATUS;
+import static com.example.firestock.jooq.Tables.FORMAL_AUDIT;
 import static com.example.firestock.jooq.Tables.INVENTORY_CHECK;
 
 /**
@@ -108,6 +110,44 @@ public class StationAccessEvaluator {
         }
     }
 
+    /**
+     * Checks if the current user can access a formal audit (by looking up its station).
+     *
+     * @param auditId the formal audit to check access for
+     * @return true if access is allowed
+     */
+    public boolean canAccessFormalAudit(FormalAuditId auditId) {
+        StationId stationId = getStationIdForFormalAudit(auditId);
+        return stationId != null && canAccessStation(stationId);
+    }
+
+    /**
+     * Requires the current user to have access to the formal audit.
+     * Throws AccessDeniedException if access is denied.
+     *
+     * @param auditId the formal audit to check access for
+     * @throws AccessDeniedException if the user does not have access
+     */
+    public void requireFormalAuditAccess(FormalAuditId auditId) {
+        if (!canAccessFormalAudit(auditId)) {
+            throw new AccessDeniedException("Access denied to formal audit: " + auditId);
+        }
+    }
+
+    /**
+     * Gets the station ID for an apparatus. Public for use by service layer.
+     *
+     * @param apparatusId the apparatus ID
+     * @return the station ID, or null if not found
+     */
+    public StationId getStationIdForApparatus(ApparatusId apparatusId) {
+        return create.select(APPARATUS.STATION_ID)
+            .from(APPARATUS)
+            .where(APPARATUS.ID.eq(apparatusId))
+            .fetchOptional(APPARATUS.STATION_ID)
+            .orElse(null);
+    }
+
     private FirestockUserDetails getCurrentUserDetails() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -120,19 +160,19 @@ public class StationAccessEvaluator {
         return null;
     }
 
-    private StationId getStationIdForApparatus(ApparatusId apparatusId) {
-        return create.select(APPARATUS.STATION_ID)
-            .from(APPARATUS)
-            .where(APPARATUS.ID.eq(apparatusId))
-            .fetchOptional(APPARATUS.STATION_ID)
-            .orElse(null);
-    }
-
     private StationId getStationIdForInventoryCheck(InventoryCheckId checkId) {
         return create.select(INVENTORY_CHECK.STATION_ID)
             .from(INVENTORY_CHECK)
             .where(INVENTORY_CHECK.ID.eq(checkId))
             .fetchOptional(INVENTORY_CHECK.STATION_ID)
+            .orElse(null);
+    }
+
+    private StationId getStationIdForFormalAudit(FormalAuditId auditId) {
+        return create.select(FORMAL_AUDIT.STATION_ID)
+            .from(FORMAL_AUDIT)
+            .where(FORMAL_AUDIT.ID.eq(auditId))
+            .fetchOptional(FORMAL_AUDIT.STATION_ID)
             .orElse(null);
     }
 }
