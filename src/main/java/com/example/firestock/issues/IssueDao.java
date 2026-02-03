@@ -1,4 +1,4 @@
-package com.example.firestock.inventorycheck;
+package com.example.firestock.issues;
 
 import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.ConsumableStockId;
@@ -23,11 +23,11 @@ import static com.example.firestock.jooq.Tables.ISSUE;
  * DAO class for issue write operations.
  */
 @Component
-class IssueDao {
+public class IssueDao {
 
     private final DSLContext create;
 
-    IssueDao(DSLContext create) {
+    public IssueDao(DSLContext create) {
         this.create = create;
     }
 
@@ -46,7 +46,7 @@ class IssueDao {
      * @param isCrewResponsibility whether the issue is a crew responsibility
      * @return the ID of the created issue
      */
-    IssueId insert(
+    public IssueId insert(
             EquipmentItemId equipmentItemId,
             ConsumableStockId consumableStockId,
             ApparatusId apparatusId,
@@ -73,6 +73,51 @@ class IssueDao {
         record.setIsCrewResponsibility(isCrewResponsibility);
         record.store();
         return record.getId();
+    }
+
+    /**
+     * Creates a new issue and returns the created issue details.
+     *
+     * @param equipmentItemId the equipment item, or null for consumables
+     * @param consumableStockId the consumable stock, or null for equipment
+     * @param apparatusId the apparatus where the issue was found
+     * @param stationId the station
+     * @param title the issue title
+     * @param description the issue description
+     * @param severity the severity level
+     * @param category the issue category
+     * @param reportedBy the user reporting the issue
+     * @param isCrewResponsibility whether the issue is a crew responsibility
+     * @return the created issue result containing ID and reference number
+     */
+    public IssueCreatedResult insertAndReturn(
+            EquipmentItemId equipmentItemId,
+            ConsumableStockId consumableStockId,
+            ApparatusId apparatusId,
+            StationId stationId,
+            String title,
+            String description,
+            IssueSeverity severity,
+            IssueCategory category,
+            UserId reportedBy,
+            boolean isCrewResponsibility) {
+
+        IssueRecord record = create.newRecord(ISSUE);
+        ReferenceNumber referenceNumber = generateReferenceNumber();
+        record.setReferenceNumber(referenceNumber);
+        record.setEquipmentItemId(equipmentItemId);
+        record.setConsumableStockId(consumableStockId);
+        record.setApparatusId(apparatusId);
+        record.setStationId(stationId);
+        record.setTitle(title);
+        record.setDescription(description);
+        record.setSeverity(severity);
+        record.setCategory(category);
+        record.setStatus(IssueStatus.OPEN);
+        record.setReportedById(reportedBy);
+        record.setIsCrewResponsibility(isCrewResponsibility);
+        record.store();
+        return new IssueCreatedResult(record.getId(), referenceNumber);
     }
 
     /**
