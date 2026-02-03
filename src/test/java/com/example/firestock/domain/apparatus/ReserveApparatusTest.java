@@ -4,6 +4,7 @@ import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.StationId;
 import com.example.firestock.domain.primitives.strings.Barcode;
 import com.example.firestock.domain.primitives.strings.UnitNumber;
+import java.time.Year;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -88,7 +89,7 @@ class ReserveApparatusTest {
         @Test
         void activate_transitions_to_InServiceApparatus() {
             var apparatus = new ReserveApparatus(
-                    id, unitNumber, "VIN123", type, "Pierce", "Arrow", 2020,
+                    id, unitNumber, "VIN123", type, "Pierce", "Arrow", Year.of(2020),
                     stationId, new Barcode("APP-RES001"), "Backup unit"
             );
 
@@ -118,7 +119,7 @@ class ReserveApparatusTest {
         void activate_preserves_vehicle_details() {
             var barcode = new Barcode("APP-RES001");
             var apparatus = new ReserveApparatus(
-                    id, unitNumber, "VIN123", type, "Pierce", "Arrow", 2020,
+                    id, unitNumber, "VIN123", type, "Pierce", "Arrow", Year.of(2020),
                     stationId, barcode, "Backup"
             );
 
@@ -127,7 +128,7 @@ class ReserveApparatusTest {
             assertThat(inService.vin()).isEqualTo("VIN123");
             assertThat(inService.make()).isEqualTo("Pierce");
             assertThat(inService.model()).isEqualTo("Arrow");
-            assertThat(inService.year()).isEqualTo(2020);
+            assertThat(inService.year()).isEqualTo(Year.of(2020));
             assertThat(inService.barcode()).isEqualTo(barcode);
         }
     }

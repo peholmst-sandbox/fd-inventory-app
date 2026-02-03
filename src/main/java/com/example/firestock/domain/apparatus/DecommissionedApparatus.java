@@ -5,6 +5,7 @@ import com.example.firestock.domain.primitives.ids.StationId;
 import com.example.firestock.domain.primitives.strings.Barcode;
 import com.example.firestock.domain.primitives.strings.UnitNumber;
 
+import java.time.Year;
 import java.util.Objects;
 
 /**
@@ -26,7 +27,7 @@ import java.util.Objects;
  * @param type the apparatus type classification
  * @param make the vehicle manufacturer (nullable)
  * @param model the vehicle model (nullable)
- * @param year the model year (nullable)
+ * @param year the model year as java.time.Year (nullable)
  * @param stationId the last assigned station
  * @param barcode the scanning barcode (nullable)
  * @param notes the reason for decommissioning or other notes (nullable)
@@ -38,7 +39,7 @@ public record DecommissionedApparatus(
         ApparatusType type,
         String make,
         String model,
-        Integer year,
+        Year year,
         StationId stationId,
         Barcode barcode,
         String notes

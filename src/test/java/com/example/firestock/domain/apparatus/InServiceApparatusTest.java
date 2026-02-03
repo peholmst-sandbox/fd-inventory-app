@@ -4,6 +4,7 @@ import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.StationId;
 import com.example.firestock.domain.primitives.strings.Barcode;
 import com.example.firestock.domain.primitives.strings.UnitNumber;
+import java.time.Year;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -57,13 +58,13 @@ class InServiceApparatusTest {
             var barcode = new Barcode("APP-ENG005");
             var apparatus = new InServiceApparatus(
                     id, unitNumber, "1FDXE4FS7FDA12345", type,
-                    "Pierce", "Arrow XT", 2020, stationId, barcode, "Primary engine"
+                    "Pierce", "Arrow XT", Year.of(2020), stationId, barcode, "Primary engine"
             );
 
             assertThat(apparatus.vin()).isEqualTo("1FDXE4FS7FDA12345");
             assertThat(apparatus.make()).isEqualTo("Pierce");
             assertThat(apparatus.model()).isEqualTo("Arrow XT");
-            assertThat(apparatus.year()).isEqualTo(2020);
+            assertThat(apparatus.year()).isEqualTo(Year.of(2020));
             assertThat(apparatus.barcode()).isEqualTo(barcode);
             assertThat(apparatus.notes()).isEqualTo("Primary engine");
         }
@@ -151,7 +152,7 @@ class InServiceApparatusTest {
         void state_transitions_preserve_all_fields() {
             var barcode = new Barcode("APP-ENG005");
             var apparatus = new InServiceApparatus(
-                    id, unitNumber, "VIN123", type, "Pierce", "Arrow", 2020,
+                    id, unitNumber, "VIN123", type, "Pierce", "Arrow", Year.of(2020),
                     stationId, barcode, "Original notes"
             );
 
@@ -160,7 +161,7 @@ class InServiceApparatusTest {
             assertThat(outOfService.vin()).isEqualTo("VIN123");
             assertThat(outOfService.make()).isEqualTo("Pierce");
             assertThat(outOfService.model()).isEqualTo("Arrow");
-            assertThat(outOfService.year()).isEqualTo(2020);
+            assertThat(outOfService.year()).isEqualTo(Year.of(2020));
             assertThat(outOfService.barcode()).isEqualTo(barcode);
         }
     }
@@ -173,12 +174,12 @@ class InServiceApparatusTest {
         void withVehicleDetails_updates_vehicle_info() {
             var apparatus = InServiceApparatus.create(id, unitNumber, type, stationId);
 
-            var updated = apparatus.withVehicleDetails("VIN123", "Pierce", "Arrow XT", 2020);
+            var updated = apparatus.withVehicleDetails("VIN123", "Pierce", "Arrow XT", Year.of(2020));
 
             assertThat(updated.vin()).isEqualTo("VIN123");
             assertThat(updated.make()).isEqualTo("Pierce");
             assertThat(updated.model()).isEqualTo("Arrow XT");
-            assertThat(updated.year()).isEqualTo(2020);
+            assertThat(updated.year()).isEqualTo(Year.of(2020));
             assertThat(updated).isNotSameAs(apparatus);
         }
 
@@ -261,14 +262,14 @@ class InServiceApparatusTest {
         void optional_methods_return_values_when_present() {
             var barcode = new Barcode("APP-ENG005");
             var apparatus = new InServiceApparatus(
-                    id, unitNumber, "VIN123", type, "Pierce", "Arrow", 2020,
+                    id, unitNumber, "VIN123", type, "Pierce", "Arrow", Year.of(2020),
                     stationId, barcode, "Notes"
             );
 
             assertThat(apparatus.vinOpt()).contains("VIN123");
             assertThat(apparatus.makeOpt()).contains("Pierce");
             assertThat(apparatus.modelOpt()).contains("Arrow");
-            assertThat(apparatus.yearOpt()).contains(2020);
+            assertThat(apparatus.yearOpt()).contains(Year.of(2020));
             assertThat(apparatus.barcodeOpt()).contains(barcode);
             assertThat(apparatus.notesOpt()).contains("Notes");
         }

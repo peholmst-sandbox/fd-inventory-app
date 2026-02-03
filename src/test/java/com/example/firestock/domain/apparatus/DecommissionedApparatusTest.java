@@ -4,6 +4,7 @@ import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.StationId;
 import com.example.firestock.domain.primitives.strings.Barcode;
 import com.example.firestock.domain.primitives.strings.UnitNumber;
+import java.time.Year;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -47,14 +48,14 @@ class DecommissionedApparatusTest {
         void creates_with_all_fields_for_historical_record() {
             var barcode = new Barcode("APP-ENG005");
             var apparatus = new DecommissionedApparatus(
-                    id, unitNumber, "VIN123", type, "Pierce", "Arrow", 2010,
+                    id, unitNumber, "VIN123", type, "Pierce", "Arrow", Year.of(2010),
                     stationId, barcode, "Retired after 15 years of service"
             );
 
             assertThat(apparatus.vin()).isEqualTo("VIN123");
             assertThat(apparatus.make()).isEqualTo("Pierce");
             assertThat(apparatus.model()).isEqualTo("Arrow");
-            assertThat(apparatus.year()).isEqualTo(2010);
+            assertThat(apparatus.year()).isEqualTo(Year.of(2010));
             assertThat(apparatus.barcode()).isEqualTo(barcode);
         }
     }
@@ -153,7 +154,7 @@ class DecommissionedApparatusTest {
         void preserves_all_historical_data() {
             var barcode = new Barcode("APP-ENG005");
             var apparatus = new DecommissionedApparatus(
-                    id, unitNumber, "VIN123", type, "Pierce", "Arrow", 2010,
+                    id, unitNumber, "VIN123", type, "Pierce", "Arrow", Year.of(2010),
                     stationId, barcode, "Sold at auction"
             );
 
@@ -164,7 +165,7 @@ class DecommissionedApparatusTest {
             assertThat(apparatus.type()).isEqualTo(type);
             assertThat(apparatus.make()).isEqualTo("Pierce");
             assertThat(apparatus.model()).isEqualTo("Arrow");
-            assertThat(apparatus.year()).isEqualTo(2010);
+            assertThat(apparatus.year()).isEqualTo(Year.of(2010));
             assertThat(apparatus.stationId()).isEqualTo(stationId);
             assertThat(apparatus.barcode()).isEqualTo(barcode);
             assertThat(apparatus.notes()).isEqualTo("Sold at auction");

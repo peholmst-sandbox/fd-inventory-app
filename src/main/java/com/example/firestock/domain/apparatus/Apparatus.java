@@ -5,6 +5,7 @@ import com.example.firestock.domain.primitives.ids.StationId;
 import com.example.firestock.domain.primitives.strings.Barcode;
 import com.example.firestock.domain.primitives.strings.UnitNumber;
 
+import java.time.Year;
 import java.util.Optional;
 
 /**
@@ -86,7 +87,7 @@ public sealed interface Apparatus
      *
      * @return the year, or null if not recorded
      */
-    Integer year();
+    Year year();
 
     /**
      * Returns the station where this apparatus is assigned.
@@ -148,7 +149,7 @@ public sealed interface Apparatus
      *
      * @return the year, or empty if not recorded
      */
-    default Optional<Integer> yearOpt() {
+    default Optional<Year> yearOpt() {
         return Optional.ofNullable(year());
     }
 

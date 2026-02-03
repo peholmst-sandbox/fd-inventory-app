@@ -5,6 +5,7 @@ import com.example.firestock.domain.primitives.ids.StationId;
 import com.example.firestock.domain.primitives.strings.Barcode;
 import com.example.firestock.domain.primitives.strings.UnitNumber;
 
+import java.time.Year;
 import java.util.Objects;
 
 /**
@@ -30,7 +31,7 @@ import java.util.Objects;
  * @param type the apparatus type classification
  * @param make the vehicle manufacturer (nullable)
  * @param model the vehicle model (nullable)
- * @param year the model year (nullable)
+ * @param year the model year as java.time.Year (nullable)
  * @param stationId the assigned station
  * @param barcode the scanning barcode (nullable)
  * @param notes any notes (nullable)
@@ -42,7 +43,7 @@ public record InServiceApparatus(
         ApparatusType type,
         String make,
         String model,
-        Integer year,
+        Year year,
         StationId stationId,
         Barcode barcode,
         String notes
@@ -123,7 +124,7 @@ public record InServiceApparatus(
      * @param year the year
      * @return a new apparatus with updated details
      */
-    public InServiceApparatus withVehicleDetails(String vin, String make, String model, Integer year) {
+    public InServiceApparatus withVehicleDetails(String vin, String make, String model, Year year) {
         return new InServiceApparatus(
                 id, unitNumber, vin, type, make, model, year, stationId, barcode, notes
         );
