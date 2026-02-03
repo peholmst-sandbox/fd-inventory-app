@@ -9,7 +9,7 @@ import com.example.firestock.domain.primitives.ids.FormalAuditId;
  * <p>Using a sealed class hierarchy allows exhaustive pattern matching on
  * exception types and ensures all audit-related exceptions are explicitly defined.
  */
-public sealed class AuditException extends RuntimeException {
+public abstract sealed class AuditException extends RuntimeException {
 
     protected AuditException(String message) {
         super(message);
