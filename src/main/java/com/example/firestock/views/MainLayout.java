@@ -2,6 +2,7 @@ package com.example.firestock.views;
 
 import com.example.firestock.security.FirestockUserDetails;
 import com.example.firestock.views.inventorycheck.ApparatusSelectionView;
+import com.example.firestock.views.issues.ReportIssueView;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
@@ -75,6 +76,13 @@ public class MainLayout extends AppLayout {
                 VaadinIcon.CHECK_SQUARE_O.create()
         );
         nav.addItem(inventoryCheck);
+
+        SideNavItem reportIssue = new SideNavItem(
+                "Report Issue",
+                ReportIssueView.class,
+                VaadinIcon.EXCLAMATION_CIRCLE.create()
+        );
+        nav.addItem(reportIssue);
 
         addToDrawer(nav);
     }

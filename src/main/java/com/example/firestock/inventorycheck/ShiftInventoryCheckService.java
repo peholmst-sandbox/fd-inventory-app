@@ -6,6 +6,7 @@ import com.example.firestock.domain.primitives.ids.IssueId;
 import com.example.firestock.domain.primitives.ids.StationId;
 import com.example.firestock.domain.primitives.ids.UserId;
 import com.example.firestock.domain.primitives.strings.Barcode;
+import com.example.firestock.issues.IssueDao;
 import com.example.firestock.jooq.enums.CheckStatus;
 import com.example.firestock.jooq.enums.EquipmentStatus;
 import com.example.firestock.jooq.enums.IssueCategory;

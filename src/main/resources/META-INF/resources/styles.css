@@ -496,6 +496,403 @@
     }
 }
 
+/* ===== Report Issue View ===== */
+.report-issue-view {
+    background: var(--lumo-base-color);
+}
+
+.report-issue-content {
+    width: 100%;
+}
+
+.view-subtitle {
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-s);
+    margin-bottom: var(--lumo-space-l);
+    display: block;
+}
+
+.lookup-row {
+    margin-bottom: var(--lumo-space-l);
+}
+
+.lookup-field {
+    background: var(--lumo-base-color);
+}
+
+.lookup-btn {
+    min-height: 48px;
+    min-width: 120px;
+}
+
+.equipment-container {
+    width: 100%;
+}
+
+.equipment-card {
+    background: var(--lumo-base-color);
+    border: 1px solid var(--lumo-contrast-10pct);
+    border-radius: var(--lumo-border-radius-l);
+    padding: var(--lumo-space-l);
+}
+
+.equipment-card .equipment-name {
+    font-size: var(--lumo-font-size-l);
+    font-weight: 600;
+    display: block;
+    margin-bottom: var(--lumo-space-s);
+}
+
+.equipment-card .equipment-serial,
+.equipment-card .equipment-barcode {
+    font-family: monospace;
+    font-size: var(--lumo-font-size-s);
+    color: var(--lumo-tertiary-text-color);
+}
+
+.equipment-card .equipment-location {
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-s);
+    display: block;
+    margin-top: var(--lumo-space-s);
+}
+
+.equipment-card .equipment-status {
+    display: inline-block;
+    padding: var(--lumo-space-xs) var(--lumo-space-s);
+    border-radius: var(--lumo-border-radius-m);
+    font-size: var(--lumo-font-size-xs);
+    font-weight: 600;
+    margin-top: var(--lumo-space-s);
+    margin-bottom: var(--lumo-space-m);
+}
+
+.equipment-card .status-ok {
+    background: var(--firestock-present-bg);
+    color: var(--firestock-present);
+}
+
+.equipment-card .status-damaged {
+    background: var(--firestock-damaged-bg);
+    color: var(--firestock-damaged);
+}
+
+.equipment-card .status-missing {
+    background: var(--firestock-missing-bg);
+    color: var(--firestock-missing);
+}
+
+.equipment-card .report-btn {
+    min-height: 48px;
+    margin-top: var(--lumo-space-m);
+}
+
+.not-found-card {
+    background: var(--lumo-contrast-5pct);
+    border-radius: var(--lumo-border-radius-l);
+    padding: var(--lumo-space-xl);
+}
+
+.not-found-icon {
+    font-size: 48px;
+    color: var(--lumo-secondary-text-color);
+    margin-bottom: var(--lumo-space-m);
+}
+
+.not-found-message {
+    font-size: var(--lumo-font-size-l);
+    font-weight: 500;
+    display: block;
+    margin-bottom: var(--lumo-space-s);
+}
+
+.not-found-hint {
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-s);
+}
+
+.success-card {
+    background: var(--firestock-present-bg);
+    border: 2px solid var(--firestock-present);
+    border-radius: var(--lumo-border-radius-l);
+    padding: var(--lumo-space-xl);
+}
+
+.success-icon {
+    font-size: 48px;
+    color: var(--firestock-present);
+    margin-bottom: var(--lumo-space-m);
+}
+
+.success-title {
+    font-size: var(--lumo-font-size-l);
+    font-weight: 600;
+    color: var(--firestock-present);
+    display: block;
+    margin-bottom: var(--lumo-space-s);
+}
+
+.success-reference {
+    font-family: monospace;
+    font-size: var(--lumo-font-size-m);
+    font-weight: 500;
+    display: block;
+    margin-bottom: var(--lumo-space-m);
+}
+
+.status-update {
+    color: var(--lumo-secondary-text-color);
+    font-size: var(--lumo-font-size-s);
+    display: block;
+    margin-bottom: var(--lumo-space-m);
+}
+
+/* ===== Report Issue Dialog ===== */
+.report-issue-dialog .dialog-content {
+    min-width: 350px;
+    max-width: 500px;
+}
+
+.report-issue-dialog .equipment-header {
+    background: var(--lumo-contrast-5pct);
+    border-radius: var(--lumo-border-radius-m);
+    margin-bottom: var(--lumo-space-m);
+}
+
+.report-issue-dialog .equipment-name {
+    font-weight: 600;
+    font-size: var(--lumo-font-size-m);
+    display: block;
+}
+
+.report-issue-dialog .equipment-serial,
+.report-issue-dialog .equipment-location {
+    font-size: var(--lumo-font-size-s);
+    color: var(--lumo-secondary-text-color);
+}
+
+.report-issue-dialog .equipment-status {
+    display: inline-block;
+    padding: var(--lumo-space-xs) var(--lumo-space-s);
+    border-radius: var(--lumo-border-radius-m);
+    font-size: var(--lumo-font-size-xs);
+    font-weight: 600;
+    margin-top: var(--lumo-space-xs);
+}
+
+/* Issue Type Cards */
+.issue-type-card {
+    padding: var(--lumo-space-s) var(--lumo-space-m);
+    border-radius: var(--lumo-border-radius-m);
+    border: 1px solid var(--lumo-contrast-10pct);
+    background: var(--lumo-base-color);
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.issue-type-card:hover {
+    border-color: var(--lumo-primary-color);
+}
+
+.issue-type-card .category-icon {
+    font-size: 20px;
+}
+
+.issue-type-card.category-damage .category-icon {
+    color: var(--firestock-damaged);
+}
+
+.issue-type-card.category-missing .category-icon {
+    color: var(--firestock-missing);
+}
+
+.issue-type-card.category-malfunction .category-icon {
+    color: var(--lumo-primary-color);
+}
+
+.category-label {
+    font-weight: 500;
+}
+
+/* Character count */
+.char-count {
+    font-size: var(--lumo-font-size-xs);
+    color: var(--lumo-secondary-text-color);
+    text-align: right;
+    display: block;
+    margin-top: calc(-1 * var(--lumo-space-s));
+}
+
+.char-count-valid {
+    color: var(--firestock-present);
+}
+
+.char-count-invalid {
+    color: var(--firestock-missing);
+}
+
+/* Severity Items */
+.severity-item {
+    padding: var(--lumo-space-s) var(--lumo-space-m);
+    border-radius: var(--lumo-border-radius-m);
+    border: 1px solid var(--lumo-contrast-10pct);
+    background: var(--lumo-base-color);
+}
+
+.severity-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.severity-critical .severity-indicator {
+    background: var(--firestock-missing);
+}
+
+.severity-high .severity-indicator {
+    background: var(--firestock-damaged);
+}
+
+.severity-medium .severity-indicator {
+    background: #fbc02d;
+}
+
+.severity-low .severity-indicator {
+    background: var(--firestock-primary);
+}
+
+.severity-label {
+    font-weight: 500;
+    font-size: var(--lumo-font-size-s);
+}
+
+.severity-description {
+    font-size: var(--lumo-font-size-xs);
+    color: var(--lumo-secondary-text-color);
+}
+
+/* Critical Confirmation */
+.critical-confirmation {
+    background: var(--firestock-missing-bg);
+    padding: var(--lumo-space-m);
+    border-radius: var(--lumo-border-radius-m);
+    border-left: 4px solid var(--firestock-missing);
+}
+
+/* ===== Existing Issue Dialog ===== */
+.existing-issue-dialog .dialog-content {
+    min-width: 400px;
+    max-width: 550px;
+}
+
+.existing-issue-dialog .info-message {
+    display: block;
+    padding: var(--lumo-space-m);
+    background: var(--lumo-primary-color-10pct);
+    border-radius: var(--lumo-border-radius-m);
+    margin-bottom: var(--lumo-space-m);
+    font-size: var(--lumo-font-size-s);
+}
+
+.existing-issue-card {
+    background: var(--lumo-base-color);
+    border: 1px solid var(--lumo-contrast-10pct);
+    border-radius: var(--lumo-border-radius-m);
+    border-left: 4px solid;
+    margin-bottom: var(--lumo-space-s);
+}
+
+.existing-issue-card.severity-critical {
+    border-left-color: var(--firestock-missing);
+}
+
+.existing-issue-card.severity-high {
+    border-left-color: var(--firestock-damaged);
+}
+
+.existing-issue-card.severity-medium {
+    border-left-color: #fbc02d;
+}
+
+.existing-issue-card.severity-low {
+    border-left-color: var(--firestock-primary);
+}
+
+.existing-issue-card .issue-reference {
+    font-family: monospace;
+    font-weight: 600;
+    font-size: var(--lumo-font-size-s);
+}
+
+.existing-issue-card .issue-title {
+    display: block;
+    font-size: var(--lumo-font-size-s);
+    margin-top: var(--lumo-space-xs);
+}
+
+.existing-issue-card .issue-category,
+.existing-issue-card .issue-date,
+.existing-issue-card .issue-status {
+    font-size: var(--lumo-font-size-xs);
+    color: var(--lumo-secondary-text-color);
+}
+
+.severity-badge {
+    padding: var(--lumo-space-xs) var(--lumo-space-s);
+    border-radius: var(--lumo-border-radius-m);
+    font-size: var(--lumo-font-size-xs);
+    font-weight: 600;
+}
+
+.severity-badge-critical {
+    background: var(--firestock-missing-bg);
+    color: var(--firestock-missing);
+}
+
+.severity-badge-high {
+    background: var(--firestock-damaged-bg);
+    color: var(--firestock-damaged);
+}
+
+.severity-badge-medium {
+    background: #fff8e1;
+    color: #f57f17;
+}
+
+.severity-badge-low {
+    background: var(--firestock-primary-bg);
+    color: var(--firestock-primary);
+}
+
+.additional-notes {
+    margin-top: var(--lumo-space-m);
+}
+
+/* ===== Mobile Responsiveness for Report Issue ===== */
+@media (max-width: 600px) {
+    .report-issue-view {
+        padding: var(--lumo-space-s);
+    }
+
+    .report-issue-content {
+        max-width: 100%;
+    }
+
+    .lookup-row {
+        flex-direction: column;
+    }
+
+    .lookup-btn {
+        width: 100%;
+    }
+
+    .report-issue-dialog .dialog-content,
+    .existing-issue-dialog .dialog-content {
+        min-width: auto;
+        max-width: 100%;
+    }
+}
+
 /* ===== High Contrast for Apparatus Bay Conditions ===== */
 @media (prefers-contrast: more) {
     .status-present {
@@ -516,6 +913,12 @@
     .item-card,
     .apparatus-card,
     .stat-card {
+        border-width: 2px;
+    }
+
+    .severity-badge,
+    .issue-type-card,
+    .severity-item {
         border-width: 2px;
     }
 }
