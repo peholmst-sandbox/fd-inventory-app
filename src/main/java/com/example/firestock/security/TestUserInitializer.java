@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +22,7 @@ import static com.example.firestock.jooq.Tables.USER_STATION_ASSIGNMENT;
  * Only runs when firestock.security.create-test-users=true.
  */
 @Component
+@Order(1)
 class TestUserInitializer implements ApplicationRunner {
 
     private static final Logger LOG = LoggerFactory.getLogger(TestUserInitializer.class);
