@@ -1,4 +1,4 @@
-package com.example.firestock.inventorycheck.dto;
+package com.example.firestock.inventorycheck;
 
 import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.StationId;

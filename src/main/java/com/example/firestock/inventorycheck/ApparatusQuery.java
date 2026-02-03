@@ -1,11 +1,7 @@
-package com.example.firestock.inventorycheck.query;
+package com.example.firestock.inventorycheck;
 
 import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.StationId;
-import com.example.firestock.inventorycheck.dto.ApparatusDetails;
-import com.example.firestock.inventorycheck.dto.ApparatusSummary;
-import com.example.firestock.inventorycheck.dto.CheckableItem;
-import com.example.firestock.inventorycheck.dto.CompartmentWithItems;
 import com.example.firestock.jooq.enums.CheckStatus;
 import org.jooq.DSLContext;
 import org.jooq.Record4;
@@ -14,7 +10,6 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,11 +19,11 @@ import static com.example.firestock.jooq.Tables.*;
  * Query class for apparatus-related data access operations.
  */
 @Component
-public class ApparatusQuery {
+class ApparatusQuery {
 
     private final DSLContext create;
 
-    public ApparatusQuery(DSLContext create) {
+    ApparatusQuery(DSLContext create) {
         this.create = create;
     }
 
@@ -38,7 +33,7 @@ public class ApparatusQuery {
      * @param stationId the station to find apparatus for
      * @return list of apparatus summaries
      */
-    public List<ApparatusSummary> findByStationId(StationId stationId) {
+    List<ApparatusSummary> findByStationId(StationId stationId) {
         // Subquery to get the latest completed check date for each apparatus
         var latestCheck = DSL.select(
                 INVENTORY_CHECK.APPARATUS_ID,
@@ -72,7 +67,7 @@ public class ApparatusQuery {
      * @param apparatusId the apparatus to retrieve
      * @return the apparatus details or empty if not found
      */
-    public Optional<ApparatusDetails> findByIdWithCompartmentsAndItems(ApparatusId apparatusId) {
+    Optional<ApparatusDetails> findByIdWithCompartmentsAndItems(ApparatusId apparatusId) {
         // First, get the apparatus basic info
         var apparatusInfo = create.select(
                 APPARATUS.ID,

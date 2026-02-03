@@ -1,4 +1,4 @@
-package com.example.firestock.inventorycheck.dao;
+package com.example.firestock.inventorycheck;
 
 import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.ConsumableStockId;
@@ -23,11 +23,11 @@ import static com.example.firestock.jooq.Tables.ISSUE;
  * DAO class for issue write operations.
  */
 @Component
-public class IssueDao {
+class IssueDao {
 
     private final DSLContext create;
 
-    public IssueDao(DSLContext create) {
+    IssueDao(DSLContext create) {
         this.create = create;
     }
 
@@ -46,7 +46,7 @@ public class IssueDao {
      * @param isCrewResponsibility whether the issue is a crew responsibility
      * @return the ID of the created issue
      */
-    public IssueId insert(
+    IssueId insert(
             EquipmentItemId equipmentItemId,
             ConsumableStockId consumableStockId,
             ApparatusId apparatusId,
@@ -81,7 +81,7 @@ public class IssueDao {
      *
      * @return the generated reference number
      */
-    public ReferenceNumber generateReferenceNumber() {
+    ReferenceNumber generateReferenceNumber() {
         int currentYear = Year.now().getValue();
         String prefix = "ISS-" + currentYear + "-";
 

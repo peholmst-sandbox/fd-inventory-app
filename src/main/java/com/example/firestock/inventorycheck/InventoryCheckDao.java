@@ -1,4 +1,4 @@
-package com.example.firestock.inventorycheck.dao;
+package com.example.firestock.inventorycheck;
 
 import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.InventoryCheckId;
@@ -17,11 +17,11 @@ import static com.example.firestock.jooq.Tables.INVENTORY_CHECK;
  * DAO class for inventory check write operations.
  */
 @Component
-public class InventoryCheckDao {
+class InventoryCheckDao {
 
     private final DSLContext create;
 
-    public InventoryCheckDao(DSLContext create) {
+    InventoryCheckDao(DSLContext create) {
         this.create = create;
     }
 
@@ -34,7 +34,7 @@ public class InventoryCheckDao {
      * @param totalItems the total number of items to be verified
      * @return the ID of the newly created check
      */
-    public InventoryCheckId insert(ApparatusId apparatusId, StationId stationId,
+    InventoryCheckId insert(ApparatusId apparatusId, StationId stationId,
                                    UserId performedBy, int totalItems) {
         InventoryCheckRecord record = create.newRecord(INVENTORY_CHECK);
         record.setApparatusId(apparatusId);
@@ -56,7 +56,7 @@ public class InventoryCheckDao {
      * @param verifiedCount the number of verified items
      * @param issuesFoundCount the number of issues found
      */
-    public void updateStatus(InventoryCheckId id, CheckStatus status,
+    void updateStatus(InventoryCheckId id, CheckStatus status,
                              int verifiedCount, int issuesFoundCount) {
         create.update(INVENTORY_CHECK)
             .set(INVENTORY_CHECK.STATUS, status)
@@ -72,7 +72,7 @@ public class InventoryCheckDao {
      *
      * @param id the check ID
      */
-    public void markCompleted(InventoryCheckId id) {
+    void markCompleted(InventoryCheckId id) {
         create.update(INVENTORY_CHECK)
             .set(INVENTORY_CHECK.STATUS, CheckStatus.COMPLETED)
             .set(INVENTORY_CHECK.COMPLETED_AT, LocalDateTime.now())
@@ -86,7 +86,7 @@ public class InventoryCheckDao {
      *
      * @param id the check ID
      */
-    public void markAbandoned(InventoryCheckId id) {
+    void markAbandoned(InventoryCheckId id) {
         create.update(INVENTORY_CHECK)
             .set(INVENTORY_CHECK.STATUS, CheckStatus.ABANDONED)
             .set(INVENTORY_CHECK.ABANDONED_AT, LocalDateTime.now())
@@ -101,7 +101,7 @@ public class InventoryCheckDao {
      * @param id the check ID
      * @param hasIssue true if the verification found an issue
      */
-    public void incrementCounts(InventoryCheckId id, boolean hasIssue) {
+    void incrementCounts(InventoryCheckId id, boolean hasIssue) {
         var update = create.update(INVENTORY_CHECK)
             .set(INVENTORY_CHECK.VERIFIED_COUNT, INVENTORY_CHECK.VERIFIED_COUNT.plus(1))
             .set(INVENTORY_CHECK.UPDATED_AT, LocalDateTime.now());

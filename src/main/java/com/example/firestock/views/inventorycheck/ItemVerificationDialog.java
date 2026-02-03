@@ -18,7 +18,7 @@ import java.util.function.Consumer;
  * Dialog for marking item status with optional notes.
  * Used when marking items as Missing or Damaged.
  */
-public class ItemVerificationDialog extends Dialog {
+class ItemVerificationDialog extends Dialog {
 
     private final TextArea notesField;
 

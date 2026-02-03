@@ -1,8 +1,7 @@
-package com.example.firestock.inventorycheck.query;
+package com.example.firestock.inventorycheck;
 
 import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.InventoryCheckId;
-import com.example.firestock.inventorycheck.dto.InventoryCheckSummary;
 import com.example.firestock.jooq.enums.CheckStatus;
 import com.example.firestock.jooq.tables.records.InventoryCheckRecord;
 import org.jooq.DSLContext;
@@ -17,11 +16,11 @@ import static com.example.firestock.jooq.Tables.INVENTORY_CHECK;
  * Query class for inventory check read operations.
  */
 @Component
-public class InventoryCheckQuery {
+class InventoryCheckQuery {
 
     private final DSLContext create;
 
-    public InventoryCheckQuery(DSLContext create) {
+    InventoryCheckQuery(DSLContext create) {
         this.create = create;
     }
 
@@ -31,7 +30,7 @@ public class InventoryCheckQuery {
      * @param apparatusId the apparatus to check
      * @return the active check record, or empty if none exists
      */
-    public Optional<InventoryCheckRecord> findActiveByApparatusId(ApparatusId apparatusId) {
+    Optional<InventoryCheckRecord> findActiveByApparatusId(ApparatusId apparatusId) {
         return create.selectFrom(INVENTORY_CHECK)
             .where(INVENTORY_CHECK.APPARATUS_ID.eq(apparatusId))
             .and(INVENTORY_CHECK.STATUS.eq(CheckStatus.IN_PROGRESS))
@@ -44,7 +43,7 @@ public class InventoryCheckQuery {
      * @param apparatusId the apparatus to check
      * @return the completion date, or empty if no completed checks exist
      */
-    public Optional<LocalDateTime> findLatestCompletedDate(ApparatusId apparatusId) {
+    Optional<LocalDateTime> findLatestCompletedDate(ApparatusId apparatusId) {
         return create.select(INVENTORY_CHECK.COMPLETED_AT)
             .from(INVENTORY_CHECK)
             .where(INVENTORY_CHECK.APPARATUS_ID.eq(apparatusId))
@@ -60,7 +59,7 @@ public class InventoryCheckQuery {
      * @param id the check ID
      * @return the check summary, or empty if not found
      */
-    public Optional<InventoryCheckSummary> findById(InventoryCheckId id) {
+    Optional<InventoryCheckSummary> findById(InventoryCheckId id) {
         return create.selectFrom(INVENTORY_CHECK)
             .where(INVENTORY_CHECK.ID.eq(id))
             .fetchOptional()
@@ -82,7 +81,7 @@ public class InventoryCheckQuery {
      * @param id the check ID
      * @return the record, or empty if not found
      */
-    public Optional<InventoryCheckRecord> findRecordById(InventoryCheckId id) {
+    Optional<InventoryCheckRecord> findRecordById(InventoryCheckId id) {
         return create.selectFrom(INVENTORY_CHECK)
             .where(INVENTORY_CHECK.ID.eq(id))
             .fetchOptional();

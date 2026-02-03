@@ -1,4 +1,4 @@
-package com.example.firestock.inventorycheck.query;
+package com.example.firestock.inventorycheck;
 
 import com.example.firestock.TestcontainersConfiguration;
 import com.example.firestock.domain.primitives.ids.*;

@@ -1,11 +1,9 @@
-package com.example.firestock.inventorycheck.service;
+package com.example.firestock.inventorycheck;
 
 import com.example.firestock.TestcontainersConfiguration;
 import com.example.firestock.domain.primitives.ids.*;
 import com.example.firestock.domain.primitives.numbers.Quantity;
-import com.example.firestock.domain.primitives.strings.ReferenceNumber;
 import com.example.firestock.domain.primitives.strings.UnitNumber;
-import com.example.firestock.inventorycheck.dto.ItemVerificationRequest;
 import com.example.firestock.jooq.enums.*;
 import com.example.firestock.security.TestSecurityUtils;
 import org.jooq.DSLContext;
