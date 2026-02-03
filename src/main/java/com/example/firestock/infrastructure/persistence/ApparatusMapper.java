@@ -1,4 +1,4 @@
-package com.example.firestock.infrastructure.persistence.mapper;
+package com.example.firestock.infrastructure.persistence;
 
 import com.example.firestock.domain.apparatus.Apparatus;
 import com.example.firestock.domain.apparatus.DecommissionedApparatus;
@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
  * <p>Handles the sealed interface hierarchy by mapping based on the status field.
  */
 @Component
-public class ApparatusMapper {
+class ApparatusMapper {
 
     /**
      * Converts a jOOQ record to the appropriate domain type based on status.

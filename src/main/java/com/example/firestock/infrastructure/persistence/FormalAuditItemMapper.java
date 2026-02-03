@@ -1,4 +1,4 @@
-package com.example.firestock.infrastructure.persistence.mapper;
+package com.example.firestock.infrastructure.persistence;
 
 import com.example.firestock.domain.audit.AuditedItemTarget;
 import com.example.firestock.domain.audit.ConsumableTarget;
@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
  * <p>Handles the polymorphic target mapping (XOR between equipment and consumable).
  */
 @Component
-public class FormalAuditItemMapper {
+class FormalAuditItemMapper {
 
     /**
      * Converts a jOOQ record to the domain FormalAuditItem.

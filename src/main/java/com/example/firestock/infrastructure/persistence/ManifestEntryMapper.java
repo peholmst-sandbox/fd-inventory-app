@@ -1,4 +1,4 @@
-package com.example.firestock.infrastructure.persistence.mapper;
+package com.example.firestock.infrastructure.persistence;
 
 import com.example.firestock.domain.manifest.ManifestEntry;
 import com.example.firestock.jooq.tables.records.ManifestEntryRecord;
@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
  * {@link ManifestEntryRecord} jOOQ records.
  */
 @Component
-public class ManifestEntryMapper {
+class ManifestEntryMapper {
 
     /**
      * Converts a jOOQ record to the domain ManifestEntry.

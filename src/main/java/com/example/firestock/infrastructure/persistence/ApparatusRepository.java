@@ -4,7 +4,6 @@ import com.example.firestock.domain.apparatus.Apparatus;
 import com.example.firestock.domain.apparatus.InServiceApparatus;
 import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.StationId;
-import com.example.firestock.infrastructure.persistence.mapper.ApparatusMapper;
 import com.example.firestock.jooq.enums.ApparatusStatus;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;

@@ -25,7 +25,7 @@ import java.util.function.Consumer;
  * Dialog for recording the audit result of an individual item.
  * Supports condition assessment, functional testing, and expiry status.
  */
-public class AuditItemDialog extends Dialog {
+class AuditItemDialog extends Dialog {
 
     private final AuditableItem item;
     private final Consumer<AuditItemResult> onSave;

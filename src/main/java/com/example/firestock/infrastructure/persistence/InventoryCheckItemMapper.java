@@ -1,4 +1,4 @@
-package com.example.firestock.infrastructure.persistence.mapper;
+package com.example.firestock.infrastructure.persistence;
 
 import com.example.firestock.domain.inventorycheck.CheckedItemTarget;
 import com.example.firestock.domain.inventorycheck.ConsumableCheckTarget;
@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
  * <p>Handles the polymorphic target mapping (XOR between equipment and consumable).
  */
 @Component
-public class InventoryCheckItemMapper {
+class InventoryCheckItemMapper {
 
     /**
      * Converts a jOOQ record to the domain InventoryCheckItem.

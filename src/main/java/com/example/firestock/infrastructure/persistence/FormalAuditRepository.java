@@ -7,7 +7,6 @@ import com.example.firestock.domain.audit.InProgressAudit;
 import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.FormalAuditId;
 import com.example.firestock.domain.primitives.ids.UserId;
-import com.example.firestock.infrastructure.persistence.mapper.FormalAuditMapper;
 import com.example.firestock.jooq.enums.AuditStatus;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
