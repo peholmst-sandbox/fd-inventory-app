@@ -391,6 +391,20 @@ class FormalAuditQuery {
     }
 
     /**
+     * Updates the notes for an audit.
+     *
+     * @param auditId the audit ID
+     * @param notes the notes to save
+     */
+    void updateNotes(FormalAuditId auditId, String notes) {
+        create.update(FORMAL_AUDIT)
+                .set(FORMAL_AUDIT.NOTES, notes)
+                .set(FORMAL_AUDIT.UPDATED_AT, LocalDateTime.now())
+                .where(FORMAL_AUDIT.ID.eq(auditId))
+                .execute();
+    }
+
+    /**
      * Helper class for building compartments with items.
      */
     private static class CompartmentBuilder {

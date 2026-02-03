@@ -1,6 +1,7 @@
 package com.example.firestock.audit;
 
 import com.example.firestock.TestcontainersConfiguration;
+import com.example.firestock.domain.audit.AuditException;
 import com.example.firestock.domain.primitives.ids.*;
 import com.example.firestock.domain.primitives.numbers.Quantity;
 import com.example.firestock.domain.primitives.strings.UnitNumber;
@@ -173,7 +174,7 @@ class FormalAuditServiceTest {
         service.startAudit(testApparatusId, testUserId);
 
         // Try to start another - should fail (BR-02)
-        assertThrows(FormalAuditService.ActiveAuditExistsException.class, () ->
+        assertThrows(AuditException.ActiveAuditExistsException.class, () ->
                 service.startAudit(testApparatusId, testUserId)
         );
     }
@@ -185,7 +186,7 @@ class FormalAuditServiceTest {
         var summary = service.startAudit(testApparatusId, testUserId);
 
         // Try to complete without auditing (BR-03)
-        assertThrows(FormalAuditService.IncompleteAuditException.class, () ->
+        assertThrows(AuditException.IncompleteAuditException.class, () ->
                 service.completeAudit(summary.id())
         );
     }
@@ -396,7 +397,7 @@ class FormalAuditServiceTest {
         service.auditItem(request, testUserId);
 
         // Second audit should fail
-        assertThrows(FormalAuditService.ItemAlreadyAuditedException.class, () ->
+        assertThrows(AuditException.ItemAlreadyAuditedException.class, () ->
                 service.auditItem(request, testUserId)
         );
     }
@@ -541,7 +542,7 @@ class FormalAuditServiceTest {
         service.completeAudit(summary.id());
 
         // Try to update notes - should fail (BR-07)
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(AuditException.AuditAlreadyCompletedException.class, () ->
                 service.updateNotes(summary.id(), "New notes")
         );
     }

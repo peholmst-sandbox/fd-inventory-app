@@ -2,6 +2,7 @@ package com.example.firestock.views.audit;
 
 import com.example.firestock.audit.AuditDetails;
 import com.example.firestock.audit.FormalAuditService;
+import com.example.firestock.domain.audit.AuditException;
 import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.FormalAuditId;
 import com.example.firestock.jooq.enums.AuditItemStatus;
@@ -283,7 +284,7 @@ public class AuditSummaryView extends VerticalLayout implements HasUrlParameter<
             // Refresh the view
             this.auditDetails = auditService.getAuditDetails(auditId);
             buildUI();
-        } catch (FormalAuditService.IncompleteAuditException e) {
+        } catch (AuditException.IncompleteAuditException e) {
             Notification.show("Cannot complete: " + e.getMessage(),
                             3000, Notification.Position.MIDDLE)
                     .addThemeVariants(NotificationVariant.LUMO_ERROR);

@@ -6,6 +6,7 @@ import com.example.firestock.audit.AuditSummary;
 import com.example.firestock.audit.AuditableItem;
 import com.example.firestock.audit.CompartmentWithAuditableItems;
 import com.example.firestock.audit.FormalAuditService;
+import com.example.firestock.domain.audit.AuditException;
 import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.CompartmentId;
 import com.example.firestock.domain.primitives.numbers.Quantity;
@@ -92,7 +93,7 @@ public class FormalAuditView extends VerticalLayout implements HasUrlParameter<S
                 var user = getCurrentUser();
                 try {
                     this.currentAudit = auditService.startAudit(apparatusId, user.getUserId());
-                } catch (FormalAuditService.ActiveAuditExistsException ex) {
+                } catch (AuditException.ActiveAuditExistsException ex) {
                     // Race condition - another user started an audit
                     this.currentAudit = auditService.getActiveAudit(apparatusId)
                             .orElseThrow(() -> new IllegalStateException("Audit disappeared unexpectedly"));
@@ -434,7 +435,7 @@ public class FormalAuditView extends VerticalLayout implements HasUrlParameter<S
             Notification.show(item.name() + " marked as " + statusLabel,
                     2000, Notification.Position.BOTTOM_CENTER);
 
-        } catch (FormalAuditService.ItemAlreadyAuditedException e) {
+        } catch (AuditException.ItemAlreadyAuditedException e) {
             Notification.show("This item has already been audited",
                             3000, Notification.Position.MIDDLE)
                     .addThemeVariants(NotificationVariant.LUMO_WARNING);
