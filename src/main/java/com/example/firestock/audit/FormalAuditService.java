@@ -268,6 +268,7 @@ public class FormalAuditService {
                         ? new com.example.firestock.domain.audit.QuantityComparison(request.quantityExpected(), request.quantityFound())
                         : null,
                 request.conditionNotes(),
+                request.testNotes(),
                 now()
         );
 

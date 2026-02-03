@@ -36,7 +36,8 @@ import java.util.Optional;
  * @param testResult the functional test result (equipment only, nullable)
  * @param expiryStatus the expiry status (for items with expiration dates, nullable)
  * @param quantityComparison the quantity comparison (consumables only, nullable)
- * @param notes free-form notes about the audit finding
+ * @param conditionNotes free-form notes about the item's condition
+ * @param testNotes free-form notes about test results
  * @param auditedAt when this item was audited (null if NOT_AUDITED)
  */
 public record FormalAuditItem(
@@ -51,7 +52,8 @@ public record FormalAuditItem(
         TestResult testResult,
         ExpiryStatus expiryStatus,
         QuantityComparison quantityComparison,
-        String notes,
+        String conditionNotes,
+        String testNotes,
         Instant auditedAt
 ) {
 
@@ -92,7 +94,7 @@ public record FormalAuditItem(
         return new FormalAuditItem(
                 id, auditId, target, compartmentId, manifestEntryId, false,
                 AuditItemStatus.NOT_AUDITED,
-                null, null, null, null, null, null
+                null, null, null, null, null, null, null
         );
     }
 
@@ -112,7 +114,7 @@ public record FormalAuditItem(
         return new FormalAuditItem(
                 id, auditId, target, null, null, false,
                 AuditItemStatus.NOT_AUDITED,
-                null, null, null, null, null, null
+                null, null, null, null, null, null, null
         );
     }
 
@@ -136,7 +138,7 @@ public record FormalAuditItem(
         return new FormalAuditItem(
                 id, auditId, target, compartmentId, manifestEntryId, false,
                 AuditItemStatus.NOT_AUDITED,
-                null, null, null, null, null, null
+                null, null, null, null, null, null, null
         );
     }
 
@@ -156,7 +158,7 @@ public record FormalAuditItem(
         return new FormalAuditItem(
                 id, auditId, target, null, null, false,
                 AuditItemStatus.NOT_AUDITED,
-                null, null, null, null, null, null
+                null, null, null, null, null, null, null
         );
     }
 
@@ -178,7 +180,7 @@ public record FormalAuditItem(
         return new FormalAuditItem(
                 id, auditId, target, compartmentId, null, true,
                 AuditItemStatus.NOT_AUDITED,
-                null, null, null, null, null, null
+                null, null, null, null, null, null, null
         );
     }
 
@@ -200,7 +202,7 @@ public record FormalAuditItem(
         return new FormalAuditItem(
                 id, auditId, target, compartmentId, null, true,
                 AuditItemStatus.NOT_AUDITED,
-                null, null, null, null, null, null
+                null, null, null, null, null, null, null
         );
     }
 
@@ -289,12 +291,21 @@ public record FormalAuditItem(
     }
 
     /**
-     * Returns the notes as an Optional.
+     * Returns the condition notes as an Optional.
      *
-     * @return the notes, or empty if not set
+     * @return the condition notes, or empty if not set
      */
-    public Optional<String> notesOpt() {
-        return Optional.ofNullable(notes);
+    public Optional<String> conditionNotesOpt() {
+        return Optional.ofNullable(conditionNotes);
+    }
+
+    /**
+     * Returns the test notes as an Optional.
+     *
+     * @return the test notes, or empty if not set
+     */
+    public Optional<String> testNotesOpt() {
+        return Optional.ofNullable(testNotes);
     }
 
     /**
@@ -313,7 +324,8 @@ public record FormalAuditItem(
      * @param condition the condition assessment
      * @param testResult the test result
      * @param expiryStatus the expiry status
-     * @param notes any notes
+     * @param conditionNotes notes about condition
+     * @param testNotes notes about test results
      * @param auditedAt when the item was audited
      * @return a new audit item with the updated values
      */
@@ -322,14 +334,15 @@ public record FormalAuditItem(
             ItemCondition condition,
             TestResult testResult,
             ExpiryStatus expiryStatus,
-            String notes,
+            String conditionNotes,
+            String testNotes,
             Instant auditedAt
     ) {
         return new FormalAuditItem(
                 this.id, this.auditId, this.target,
                 this.compartmentId, this.manifestEntryId, this.isUnexpected,
                 status, condition, testResult, expiryStatus,
-                this.quantityComparison, notes, auditedAt
+                this.quantityComparison, conditionNotes, testNotes, auditedAt
         );
     }
 
@@ -339,7 +352,7 @@ public record FormalAuditItem(
      * @param status the new status
      * @param expiryStatus the expiry status
      * @param quantityComparison the quantity comparison
-     * @param notes any notes
+     * @param conditionNotes notes about condition
      * @param auditedAt when the item was audited
      * @return a new audit item with the updated values
      */
@@ -347,7 +360,7 @@ public record FormalAuditItem(
             AuditItemStatus status,
             ExpiryStatus expiryStatus,
             QuantityComparison quantityComparison,
-            String notes,
+            String conditionNotes,
             Instant auditedAt
     ) {
         if (target.isEquipment()) {
@@ -357,7 +370,7 @@ public record FormalAuditItem(
                 this.id, this.auditId, this.target,
                 this.compartmentId, this.manifestEntryId, this.isUnexpected,
                 status, null, null, expiryStatus,
-                quantityComparison, notes, auditedAt
+                quantityComparison, conditionNotes, null, auditedAt
         );
     }
 }
