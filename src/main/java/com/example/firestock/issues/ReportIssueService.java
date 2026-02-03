@@ -1,14 +1,16 @@
 package com.example.firestock.issues;
 
+import com.example.firestock.domain.issue.EquipmentIssueTarget;
+import com.example.firestock.domain.issue.OpenIssue;
 import com.example.firestock.domain.primitives.ids.EquipmentItemId;
 import com.example.firestock.domain.primitives.ids.IssueId;
 import com.example.firestock.domain.primitives.ids.StationId;
 import com.example.firestock.domain.primitives.ids.UserId;
 import com.example.firestock.domain.primitives.strings.Barcode;
 import com.example.firestock.domain.primitives.strings.SerialNumber;
+import com.example.firestock.infrastructure.persistence.IssueRepository;
 import com.example.firestock.jooq.enums.EquipmentStatus;
 import com.example.firestock.jooq.enums.IssueCategory;
-import com.example.firestock.jooq.enums.IssueSeverity;
 import com.example.firestock.security.FirestockUserDetails;
 import com.example.firestock.security.StationAccessEvaluator;
 import org.jooq.DSLContext;
@@ -19,6 +21,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 
@@ -50,21 +53,24 @@ public class ReportIssueService {
 
     private final EquipmentLookupQuery equipmentLookupQuery;
     private final IssueQuery issueQuery;
-    private final IssueDao issueDao;
+    private final IssueRepository issueRepository;
     private final StationAccessEvaluator stationAccess;
     private final DSLContext create;
+    private final Clock clock;
 
     public ReportIssueService(
             EquipmentLookupQuery equipmentLookupQuery,
             IssueQuery issueQuery,
-            IssueDao issueDao,
+            IssueRepository issueRepository,
             StationAccessEvaluator stationAccess,
-            DSLContext create) {
+            DSLContext create,
+            Clock clock) {
         this.equipmentLookupQuery = equipmentLookupQuery;
         this.issueQuery = issueQuery;
-        this.issueDao = issueDao;
+        this.issueRepository = issueRepository;
         this.stationAccess = stationAccess;
         this.create = create;
+        this.clock = clock;
     }
 
     /**
@@ -150,10 +156,9 @@ public class ReportIssueService {
         // BR-04/BR-05: Check station access
         requireEquipmentAccess(equipment);
 
-        // Create the issue
-        IssueCreatedResult result = issueDao.insertAndReturn(
+        // Create the issue using the domain model
+        OpenIssue issue = issueRepository.createEquipmentIssue(
                 request.equipmentItemId(),
-                null, // consumableStockId
                 equipment.apparatusId(),
                 equipment.stationId(),
                 request.generateTitle(),
@@ -161,6 +166,7 @@ public class ReportIssueService {
                 request.severity(),
                 request.category(),
                 reportedBy,
+                clock.instant(),
                 false // not a crew responsibility
         );
 
@@ -169,15 +175,15 @@ public class ReportIssueService {
         if (newStatus != null && newStatus != equipment.status()) {
             updateEquipmentStatus(request.equipmentItemId(), newStatus);
             return new IssueCreatedResult.WithEquipmentStatus(
-                    result.issueId(),
-                    result.referenceNumber(),
+                    issue.id(),
+                    issue.referenceNumber(),
                     newStatus
             );
         }
 
         return new IssueCreatedResult.WithEquipmentStatus(
-                result.issueId(),
-                result.referenceNumber(),
+                issue.id(),
+                issue.referenceNumber(),
                 null
         );
     }

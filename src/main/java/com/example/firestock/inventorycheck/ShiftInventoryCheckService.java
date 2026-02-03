@@ -1,12 +1,16 @@
 package com.example.firestock.inventorycheck;
 
+import com.example.firestock.domain.issue.ConsumableIssueTarget;
+import com.example.firestock.domain.issue.EquipmentIssueTarget;
+import com.example.firestock.domain.issue.IssueTarget;
+import com.example.firestock.domain.issue.OpenIssue;
 import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.InventoryCheckId;
 import com.example.firestock.domain.primitives.ids.IssueId;
 import com.example.firestock.domain.primitives.ids.StationId;
 import com.example.firestock.domain.primitives.ids.UserId;
 import com.example.firestock.domain.primitives.strings.Barcode;
-import com.example.firestock.issues.IssueDao;
+import com.example.firestock.infrastructure.persistence.IssueRepository;
 import com.example.firestock.jooq.enums.CheckStatus;
 import com.example.firestock.jooq.enums.EquipmentStatus;
 import com.example.firestock.jooq.enums.IssueCategory;
@@ -16,6 +20,8 @@ import com.example.firestock.security.StationAccessEvaluator;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Clock;
 
 import java.util.List;
 import java.util.Optional;
@@ -49,8 +55,9 @@ public class ShiftInventoryCheckService {
     private final InventoryCheckDao inventoryCheckDao;
     private final InventoryCheckItemDao inventoryCheckItemDao;
     private final EquipmentDao equipmentDao;
-    private final IssueDao issueDao;
+    private final IssueRepository issueRepository;
     private final StationAccessEvaluator stationAccess;
+    private final Clock clock;
 
     public ShiftInventoryCheckService(
             ApparatusQuery apparatusQuery,
@@ -60,8 +67,9 @@ public class ShiftInventoryCheckService {
             InventoryCheckDao inventoryCheckDao,
             InventoryCheckItemDao inventoryCheckItemDao,
             EquipmentDao equipmentDao,
-            IssueDao issueDao,
-            StationAccessEvaluator stationAccess) {
+            IssueRepository issueRepository,
+            StationAccessEvaluator stationAccess,
+            Clock clock) {
         this.apparatusQuery = apparatusQuery;
         this.inventoryCheckQuery = inventoryCheckQuery;
         this.inventoryCheckItemQuery = inventoryCheckItemQuery;
@@ -69,8 +77,9 @@ public class ShiftInventoryCheckService {
         this.inventoryCheckDao = inventoryCheckDao;
         this.inventoryCheckItemDao = inventoryCheckItemDao;
         this.equipmentDao = equipmentDao;
-        this.issueDao = issueDao;
+        this.issueRepository = issueRepository;
         this.stationAccess = stationAccess;
+        this.clock = clock;
     }
 
     /**
@@ -291,9 +300,19 @@ public class ShiftInventoryCheckService {
             request.conditionNotes() :
             "Issue automatically created during shift inventory check.";
 
-        return issueDao.insert(
-            request.equipmentItemId(),
-            request.consumableStockId(),
+        // Create the issue target based on what type of item this is
+        IssueTarget target;
+        if (request.equipmentItemId() != null) {
+            target = new EquipmentIssueTarget(request.equipmentItemId());
+        } else if (request.consumableStockId() != null) {
+            target = new ConsumableIssueTarget(request.consumableStockId());
+        } else {
+            // Apparatus-level issue
+            target = new com.example.firestock.domain.issue.ApparatusIssueTarget();
+        }
+
+        OpenIssue issue = issueRepository.createIssue(
+            target,
             check.getApparatusId(),
             check.getStationId(),
             title,
@@ -301,8 +320,11 @@ public class ShiftInventoryCheckService {
             severity,
             category,
             reportedBy,
+            clock.instant(),
             false
         );
+
+        return issue.id();
     }
 
     /**

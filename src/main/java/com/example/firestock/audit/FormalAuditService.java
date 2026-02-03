@@ -4,22 +4,23 @@ import com.example.firestock.domain.audit.AuditException;
 import com.example.firestock.domain.audit.AuditItemStatusUtil;
 import com.example.firestock.domain.audit.FormalAuditItem;
 import com.example.firestock.domain.audit.InProgressAudit;
+import com.example.firestock.domain.issue.ConsumableIssueTarget;
+import com.example.firestock.domain.issue.EquipmentIssueTarget;
+import com.example.firestock.domain.issue.IssueTarget;
+import com.example.firestock.domain.issue.OpenIssue;
 import com.example.firestock.infrastructure.persistence.FormalAuditItemRepository;
 import com.example.firestock.infrastructure.persistence.FormalAuditRepository;
+import com.example.firestock.infrastructure.persistence.IssueRepository;
 import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.FormalAuditId;
 import com.example.firestock.domain.primitives.ids.FormalAuditItemId;
 import com.example.firestock.domain.primitives.ids.IssueId;
 import com.example.firestock.domain.primitives.ids.StationId;
 import com.example.firestock.domain.primitives.ids.UserId;
-import com.example.firestock.issues.IssueDao;
 import com.example.firestock.jooq.enums.AuditItemStatus;
 import com.example.firestock.jooq.enums.EquipmentStatus;
-import com.example.firestock.jooq.enums.ExpiryStatus;
 import com.example.firestock.jooq.enums.IssueCategory;
 import com.example.firestock.jooq.enums.IssueSeverity;
-import com.example.firestock.jooq.enums.ItemCondition;
-import com.example.firestock.jooq.enums.TestResult;
 import com.example.firestock.security.StationAccessEvaluator;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -57,7 +58,7 @@ public class FormalAuditService {
     private final FormalAuditQuery auditQuery;
     private final FormalAuditRepository auditRepository;
     private final FormalAuditItemRepository auditItemRepository;
-    private final IssueDao issueDao;
+    private final IssueRepository issueRepository;
     private final AuditEquipmentDao auditEquipmentDao;
     private final StationAccessEvaluator stationAccess;
     private final Clock clock;
@@ -66,14 +67,14 @@ public class FormalAuditService {
             FormalAuditQuery auditQuery,
             FormalAuditRepository auditRepository,
             FormalAuditItemRepository auditItemRepository,
-            IssueDao issueDao,
+            IssueRepository issueRepository,
             AuditEquipmentDao auditEquipmentDao,
             StationAccessEvaluator stationAccess,
             Clock clock) {
         this.auditQuery = auditQuery;
         this.auditRepository = auditRepository;
         this.auditItemRepository = auditItemRepository;
-        this.issueDao = issueDao;
+        this.issueRepository = issueRepository;
         this.auditEquipmentDao = auditEquipmentDao;
         this.stationAccess = stationAccess;
         this.clock = clock;
@@ -344,9 +345,19 @@ public class FormalAuditService {
 
         var stationId = auditQuery.getStationIdForAudit(request.auditId());
 
-        return issueDao.insert(
-                request.equipmentItemId(),
-                request.consumableStockId(),
+        // Create the issue target based on what type of item this is
+        IssueTarget target;
+        if (request.equipmentItemId() != null) {
+            target = new EquipmentIssueTarget(request.equipmentItemId());
+        } else if (request.consumableStockId() != null) {
+            target = new ConsumableIssueTarget(request.consumableStockId());
+        } else {
+            // Apparatus-level issue
+            target = new com.example.firestock.domain.issue.ApparatusIssueTarget();
+        }
+
+        OpenIssue issue = issueRepository.createIssue(
+                target,
                 audit.apparatusId(),
                 stationId,
                 title,
@@ -354,8 +365,11 @@ public class FormalAuditService {
                 severity,
                 category,
                 reportedBy,
+                now(),
                 false
         );
+
+        return issue.id();
     }
 
     /**
