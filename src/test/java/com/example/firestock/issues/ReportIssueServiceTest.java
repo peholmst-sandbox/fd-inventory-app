@@ -102,7 +102,7 @@ class ReportIssueServiceTest {
             .set(COMPARTMENT.APPARATUS_ID, testApparatusId)
             .set(COMPARTMENT.CODE, "L1")
             .set(COMPARTMENT.NAME, "Left Compartment 1")
-            .set(COMPARTMENT.LOCATION, CompartmentLocation.LEFT_SIDE)
+            .set(COMPARTMENT.LOCATION, CompartmentLocation.DRIVER_SIDE)
             .set(COMPARTMENT.DISPLAY_ORDER, 1)
             .execute();
 
@@ -272,7 +272,7 @@ class ReportIssueServiceTest {
             .set(COMPARTMENT.APPARATUS_ID, otherApparatusId)
             .set(COMPARTMENT.CODE, "R1")
             .set(COMPARTMENT.NAME, "Right Compartment 1")
-            .set(COMPARTMENT.LOCATION, CompartmentLocation.RIGHT_SIDE)
+            .set(COMPARTMENT.LOCATION, CompartmentLocation.PASSENGER_SIDE)
             .set(COMPARTMENT.DISPLAY_ORDER, 1)
             .execute();
 
@@ -319,7 +319,7 @@ class ReportIssueServiceTest {
             .set(COMPARTMENT.APPARATUS_ID, otherApparatusId)
             .set(COMPARTMENT.CODE, "R1")
             .set(COMPARTMENT.NAME, "Right Compartment 1")
-            .set(COMPARTMENT.LOCATION, CompartmentLocation.RIGHT_SIDE)
+            .set(COMPARTMENT.LOCATION, CompartmentLocation.PASSENGER_SIDE)
             .set(COMPARTMENT.DISPLAY_ORDER, 1)
             .execute();
 
@@ -443,7 +443,7 @@ class ReportIssueServiceTest {
             .set(COMPARTMENT.APPARATUS_ID, otherApparatusId)
             .set(COMPARTMENT.CODE, "R1")
             .set(COMPARTMENT.NAME, "Right Compartment 1")
-            .set(COMPARTMENT.LOCATION, CompartmentLocation.RIGHT_SIDE)
+            .set(COMPARTMENT.LOCATION, CompartmentLocation.PASSENGER_SIDE)
             .set(COMPARTMENT.DISPLAY_ORDER, 1)
             .execute();
 

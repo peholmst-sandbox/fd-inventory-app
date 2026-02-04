@@ -4,6 +4,10 @@ import com.example.firestock.domain.primitives.ids.CompartmentId;
 import com.example.firestock.domain.primitives.ids.FormalAuditId;
 import com.example.firestock.domain.primitives.ids.FormalAuditItemId;
 import com.example.firestock.domain.primitives.ids.ManifestEntryId;
+import com.example.firestock.jooq.enums.AuditItemStatus;
+import com.example.firestock.jooq.enums.ExpiryStatus;
+import com.example.firestock.jooq.enums.ItemCondition;
+import com.example.firestock.jooq.enums.TestResult;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -215,7 +219,7 @@ public record FormalAuditItem(
      * @return true if an issue should be created for this item
      */
     public boolean requiresIssue() {
-        return status.requiresIssue();
+        return AuditItemStatusUtil.requiresIssue(status);
     }
 
     /**

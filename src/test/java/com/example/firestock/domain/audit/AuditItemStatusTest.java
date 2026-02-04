@@ -1,5 +1,6 @@
 package com.example.firestock.domain.audit;
 
+import com.example.firestock.jooq.enums.AuditItemStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -9,7 +10,8 @@ import org.junit.jupiter.params.provider.EnumSource;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Tests for {@link AuditItemStatus} demonstrating item audit outcomes.
+ * Tests for {@link AuditItemStatus} demonstrating item audit outcomes
+ * and {@link AuditItemStatusUtil} for issue creation requirements.
  *
  * <p>Each item in a formal audit receives a status indicating the verification result.
  * Per BR-05, certain statuses automatically trigger issue creation.
@@ -40,42 +42,42 @@ class AuditItemStatusTest {
 
         @Test
         void VERIFIED_does_not_require_issue() {
-            assertThat(AuditItemStatus.VERIFIED.requiresIssue()).isFalse();
+            assertThat(AuditItemStatusUtil.requiresIssue(AuditItemStatus.VERIFIED)).isFalse();
         }
 
         @Test
         void NOT_AUDITED_does_not_require_issue() {
-            assertThat(AuditItemStatus.NOT_AUDITED.requiresIssue()).isFalse();
+            assertThat(AuditItemStatusUtil.requiresIssue(AuditItemStatus.NOT_AUDITED)).isFalse();
         }
 
         @Test
         void MISSING_requires_issue() {
             // BR-05: Missing items trigger automatic issue creation
-            assertThat(AuditItemStatus.MISSING.requiresIssue()).isTrue();
+            assertThat(AuditItemStatusUtil.requiresIssue(AuditItemStatus.MISSING)).isTrue();
         }
 
         @Test
         void DAMAGED_requires_issue() {
             // BR-05: Damaged items trigger automatic issue creation
-            assertThat(AuditItemStatus.DAMAGED.requiresIssue()).isTrue();
+            assertThat(AuditItemStatusUtil.requiresIssue(AuditItemStatus.DAMAGED)).isTrue();
         }
 
         @Test
         void FAILED_INSPECTION_requires_issue() {
             // BR-05: Failed inspection triggers automatic issue creation
-            assertThat(AuditItemStatus.FAILED_INSPECTION.requiresIssue()).isTrue();
+            assertThat(AuditItemStatusUtil.requiresIssue(AuditItemStatus.FAILED_INSPECTION)).isTrue();
         }
 
         @Test
         void EXPIRED_requires_issue() {
             // BR-05: Expired items trigger automatic issue creation
-            assertThat(AuditItemStatus.EXPIRED.requiresIssue()).isTrue();
+            assertThat(AuditItemStatusUtil.requiresIssue(AuditItemStatus.EXPIRED)).isTrue();
         }
 
         @ParameterizedTest
         @EnumSource(value = AuditItemStatus.class, names = {"MISSING", "DAMAGED", "FAILED_INSPECTION", "EXPIRED"})
         void problematic_statuses_all_require_issues(AuditItemStatus status) {
-            assertThat(status.requiresIssue())
+            assertThat(AuditItemStatusUtil.requiresIssue(status))
                     .as("Status %s should require issue creation", status)
                     .isTrue();
         }
@@ -83,7 +85,7 @@ class AuditItemStatusTest {
         @ParameterizedTest
         @EnumSource(value = AuditItemStatus.class, names = {"VERIFIED", "NOT_AUDITED"})
         void non_problematic_statuses_do_not_require_issues(AuditItemStatus status) {
-            assertThat(status.requiresIssue())
+            assertThat(AuditItemStatusUtil.requiresIssue(status))
                     .as("Status %s should not require issue creation", status)
                     .isFalse();
         }

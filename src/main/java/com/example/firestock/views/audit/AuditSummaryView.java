@@ -29,6 +29,10 @@ import com.vaadin.flow.router.WildcardParameter;
 import jakarta.annotation.security.RolesAllowed;
 import org.springframework.security.access.AccessDeniedException;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
@@ -45,13 +49,15 @@ public class AuditSummaryView extends VerticalLayout implements HasUrlParameter<
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a");
 
     private final FormalAuditService auditService;
+    private final ZoneId zoneId;
 
     private ApparatusId apparatusId;
     private FormalAuditId auditId;
     private AuditDetails auditDetails;
 
-    public AuditSummaryView(FormalAuditService auditService) {
+    public AuditSummaryView(FormalAuditService auditService, Clock clock) {
         this.auditService = auditService;
+        this.zoneId = clock.getZone();
 
         addClassName("audit-summary-view");
         setSizeFull();
@@ -131,11 +137,11 @@ public class AuditSummaryView extends VerticalLayout implements HasUrlParameter<
         statusBadge.addClassName("status-badge");
         statusBadge.addClassName("status-" + auditDetails.status().getLiteral().toLowerCase().replace("_", "-"));
 
-        Span startedAt = new Span("Started: " + auditDetails.startedAt().format(DATE_TIME_FORMATTER));
+        Span startedAt = new Span("Started: " + formatInstant(auditDetails.startedAt()));
         startedAt.addClassName("text-secondary");
 
         if (auditDetails.completedAt() != null) {
-            Span completedAt = new Span("Completed: " + auditDetails.completedAt().format(DATE_TIME_FORMATTER));
+            Span completedAt = new Span("Completed: " + formatInstant(auditDetails.completedAt()));
             completedAt.addClassName("text-secondary");
             section.add(unitNumber, statusBadge, startedAt, completedAt);
         } else {
@@ -307,5 +313,9 @@ public class AuditSummaryView extends VerticalLayout implements HasUrlParameter<
                             3000, Notification.Position.MIDDLE)
                     .addThemeVariants(NotificationVariant.LUMO_ERROR);
         }
+    }
+
+    private String formatInstant(Instant instant) {
+        return LocalDateTime.ofInstant(instant, zoneId).format(DATE_TIME_FORMATTER);
     }
 }

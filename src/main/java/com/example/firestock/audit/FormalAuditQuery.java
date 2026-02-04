@@ -15,7 +15,7 @@ import org.jooq.Record;
 import org.jooq.impl.DSL;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -54,7 +54,7 @@ class FormalAuditQuery {
      * @param apparatusId the apparatus to check
      * @return the completion date, or empty if no completed audits exist
      */
-    Optional<LocalDateTime> findLatestCompletedDate(ApparatusId apparatusId) {
+    Optional<Instant> findLatestCompletedDate(ApparatusId apparatusId) {
         return create.select(FORMAL_AUDIT.COMPLETED_AT)
                 .from(FORMAL_AUDIT)
                 .where(FORMAL_AUDIT.APPARATUS_ID.eq(apparatusId))
@@ -344,7 +344,7 @@ class FormalAuditQuery {
                         r.get(APPARATUS.UNIT_NUMBER),
                         r.get(APPARATUS.TYPE),
                         r.get("station_name", String.class),
-                        r.get("last_audit_date", LocalDateTime.class),
+                        r.get("last_audit_date", Instant.class),
                         r.get("has_active_audit", Boolean.class)
                 ));
     }
@@ -385,7 +385,7 @@ class FormalAuditQuery {
                         r.get(APPARATUS.UNIT_NUMBER),
                         r.get(APPARATUS.TYPE),
                         r.get("station_name", String.class),
-                        r.get("last_audit_date", LocalDateTime.class),
+                        r.get("last_audit_date", Instant.class),
                         r.get("has_active_audit", Boolean.class)
                 ));
     }

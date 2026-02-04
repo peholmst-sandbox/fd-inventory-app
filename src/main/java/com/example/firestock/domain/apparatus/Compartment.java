@@ -2,6 +2,7 @@ package com.example.firestock.domain.apparatus;
 
 import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.CompartmentId;
+import com.example.firestock.jooq.enums.CompartmentLocation;
 
 import java.util.Objects;
 import java.util.Optional;

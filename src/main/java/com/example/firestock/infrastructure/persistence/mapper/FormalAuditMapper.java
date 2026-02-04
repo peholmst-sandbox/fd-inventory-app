@@ -2,16 +2,12 @@ package com.example.firestock.infrastructure.persistence.mapper;
 
 import com.example.firestock.domain.audit.AbandonedAudit;
 import com.example.firestock.domain.audit.AuditProgress;
-import com.example.firestock.domain.audit.AuditStatus;
 import com.example.firestock.domain.audit.CompletedAudit;
 import com.example.firestock.domain.audit.FormalAudit;
 import com.example.firestock.domain.audit.InProgressAudit;
+import com.example.firestock.jooq.enums.AuditStatus;
 import com.example.firestock.jooq.tables.records.FormalAuditRecord;
 import org.springframework.stereotype.Component;
-
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 
 /**
  * Mapper for converting between {@link FormalAudit} domain objects and
@@ -21,8 +17,6 @@ import java.time.ZoneId;
  */
 @Component
 public class FormalAuditMapper {
-
-    private static final ZoneId SYSTEM_ZONE = ZoneId.systemDefault();
 
     /**
      * Converts a jOOQ record to the appropriate domain type based on status.
@@ -35,9 +29,9 @@ public class FormalAuditMapper {
             return null;
         }
 
-        var status = toDomainStatus(record.getStatus());
+        var status = record.getStatus();
         var progress = extractProgress(record);
-        var startedAt = toInstant(record.getStartedAt());
+        var startedAt = record.getStartedAt();
 
         return switch (status) {
             case IN_PROGRESS -> new InProgressAudit(
@@ -46,8 +40,8 @@ public class FormalAuditMapper {
                     record.getPerformedById(),
                     startedAt,
                     progress,
-                    toInstant(record.getPausedAt()),
-                    toInstant(record.getUpdatedAt()) != null ? toInstant(record.getUpdatedAt()) : startedAt,
+                    record.getPausedAt(),
+                    record.getUpdatedAt() != null ? record.getUpdatedAt() : startedAt,
                     record.getNotes()
             );
             case COMPLETED -> new CompletedAudit(
@@ -56,7 +50,7 @@ public class FormalAuditMapper {
                     record.getPerformedById(),
                     startedAt,
                     progress,
-                    toInstant(record.getCompletedAt())
+                    record.getCompletedAt()
             );
             case ABANDONED -> new AbandonedAudit(
                     record.getId(),
@@ -64,7 +58,7 @@ public class FormalAuditMapper {
                     record.getPerformedById(),
                     startedAt,
                     progress,
-                    toInstant(record.getAbandonedAt()),
+                    record.getAbandonedAt(),
                     record.getNotes()
             );
         };
@@ -80,8 +74,8 @@ public class FormalAuditMapper {
         record.setId(audit.id());
         record.setApparatusId(audit.apparatusId());
         record.setPerformedById(audit.auditorId());
-        record.setStatus(toJooqStatus(audit.status()));
-        record.setStartedAt(toLocalDateTime(audit.startedAt()));
+        record.setStatus(audit.status());
+        record.setStartedAt(audit.startedAt());
 
         // Set progress fields
         var progress = audit.progress();
@@ -93,19 +87,19 @@ public class FormalAuditMapper {
         // Set state-specific fields
         switch (audit) {
             case InProgressAudit inProgress -> {
-                record.setPausedAt(toLocalDateTime(inProgress.pausedAt()));
-                record.setUpdatedAt(toLocalDateTime(inProgress.lastActivityAt()));
+                record.setPausedAt(inProgress.pausedAt());
+                record.setUpdatedAt(inProgress.lastActivityAt());
                 record.setNotes(inProgress.notes());
                 record.setCompletedAt(null);
                 record.setAbandonedAt(null);
             }
             case CompletedAudit completed -> {
-                record.setCompletedAt(toLocalDateTime(completed.completedAt()));
+                record.setCompletedAt(completed.completedAt());
                 record.setPausedAt(null);
                 record.setAbandonedAt(null);
             }
             case AbandonedAudit abandoned -> {
-                record.setAbandonedAt(toLocalDateTime(abandoned.abandonedAt()));
+                record.setAbandonedAt(abandoned.abandonedAt());
                 record.setNotes(abandoned.reason());
                 record.setPausedAt(null);
                 record.setCompletedAt(null);
@@ -126,45 +120,5 @@ public class FormalAuditMapper {
                 record.getIssuesFoundCount() != null ? record.getIssuesFoundCount() : 0,
                 record.getUnexpectedItemsCount() != null ? record.getUnexpectedItemsCount() : 0
         );
-    }
-
-    /**
-     * Converts a domain AuditStatus to the jOOQ enum.
-     *
-     * @param status the domain status
-     * @return the jOOQ status enum
-     */
-    public com.example.firestock.jooq.enums.AuditStatus toJooqStatus(AuditStatus status) {
-        return com.example.firestock.jooq.enums.AuditStatus.valueOf(status.name());
-    }
-
-    /**
-     * Converts a jOOQ AuditStatus enum to the domain enum.
-     *
-     * @param status the jOOQ status enum
-     * @return the domain status
-     */
-    public AuditStatus toDomainStatus(com.example.firestock.jooq.enums.AuditStatus status) {
-        return AuditStatus.valueOf(status.name());
-    }
-
-    /**
-     * Converts a LocalDateTime to an Instant using the system timezone.
-     *
-     * @param ldt the local date time
-     * @return the instant, or null if input is null
-     */
-    public Instant toInstant(LocalDateTime ldt) {
-        return ldt == null ? null : ldt.atZone(SYSTEM_ZONE).toInstant();
-    }
-
-    /**
-     * Converts an Instant to a LocalDateTime using the system timezone.
-     *
-     * @param instant the instant
-     * @return the local date time, or null if input is null
-     */
-    public LocalDateTime toLocalDateTime(Instant instant) {
-        return instant == null ? null : LocalDateTime.ofInstant(instant, SYSTEM_ZONE);
     }
 }

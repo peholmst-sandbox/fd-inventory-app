@@ -2,9 +2,9 @@ package com.example.firestock.infrastructure.persistence;
 
 import com.example.firestock.TestcontainersConfiguration;
 import com.example.firestock.domain.apparatus.Apparatus;
-import com.example.firestock.domain.apparatus.ApparatusRepository;
-import com.example.firestock.domain.apparatus.ApparatusStatus;
-import com.example.firestock.domain.apparatus.ApparatusType;
+import com.example.firestock.infrastructure.persistence.ApparatusRepository;
+import com.example.firestock.jooq.enums.ApparatusStatus;
+import com.example.firestock.jooq.enums.ApparatusType;
 import com.example.firestock.domain.apparatus.DecommissionedApparatus;
 import com.example.firestock.domain.apparatus.InServiceApparatus;
 import com.example.firestock.domain.apparatus.OutOfServiceApparatus;

@@ -4,7 +4,7 @@ import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.strings.UnitNumber;
 import com.example.firestock.jooq.enums.ApparatusType;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
 /**
@@ -22,7 +22,7 @@ public record ApparatusAuditInfo(
         UnitNumber unitNumber,
         ApparatusType type,
         String stationName,
-        LocalDateTime lastAuditDate,
+        Instant lastAuditDate,
         boolean hasActiveAudit
 ) {
     /**
@@ -33,7 +33,7 @@ public record ApparatusAuditInfo(
         if (lastAuditDate == null) {
             return true;
         }
-        return lastAuditDate.until(LocalDateTime.now(), ChronoUnit.DAYS) > 90;
+        return lastAuditDate.until(Instant.now(), ChronoUnit.DAYS) > 90;
     }
 
     /**
@@ -43,6 +43,6 @@ public record ApparatusAuditInfo(
         if (lastAuditDate == null) {
             return -1;
         }
-        return lastAuditDate.until(LocalDateTime.now(), ChronoUnit.DAYS);
+        return lastAuditDate.until(Instant.now(), ChronoUnit.DAYS);
     }
 }

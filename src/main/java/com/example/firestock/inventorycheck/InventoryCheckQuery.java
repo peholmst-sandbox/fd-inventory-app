@@ -7,7 +7,7 @@ import com.example.firestock.jooq.tables.records.InventoryCheckRecord;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Optional;
 
 import static com.example.firestock.jooq.Tables.INVENTORY_CHECK;
@@ -43,7 +43,7 @@ class InventoryCheckQuery {
      * @param apparatusId the apparatus to check
      * @return the completion date, or empty if no completed checks exist
      */
-    Optional<LocalDateTime> findLatestCompletedDate(ApparatusId apparatusId) {
+    Optional<Instant> findLatestCompletedDate(ApparatusId apparatusId) {
         return create.select(INVENTORY_CHECK.COMPLETED_AT)
             .from(INVENTORY_CHECK)
             .where(INVENTORY_CHECK.APPARATUS_ID.eq(apparatusId))

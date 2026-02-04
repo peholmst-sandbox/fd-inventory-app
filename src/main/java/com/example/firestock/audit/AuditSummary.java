@@ -4,7 +4,7 @@ import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.FormalAuditId;
 import com.example.firestock.jooq.enums.AuditStatus;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
 /**
@@ -25,9 +25,9 @@ public record AuditSummary(
         FormalAuditId id,
         ApparatusId apparatusId,
         AuditStatus status,
-        LocalDateTime startedAt,
-        LocalDateTime completedAt,
-        LocalDateTime pausedAt,
+        Instant startedAt,
+        Instant completedAt,
+        Instant pausedAt,
         int totalItems,
         int auditedCount,
         int issuesFoundCount,
@@ -58,7 +58,7 @@ public record AuditSummary(
         if (status == AuditStatus.COMPLETED || status == AuditStatus.ABANDONED) {
             return false;
         }
-        return startedAt.until(LocalDateTime.now(), ChronoUnit.DAYS) > 7;
+        return startedAt.until(Instant.now(), ChronoUnit.DAYS) > 7;
     }
 
     /**
@@ -72,6 +72,6 @@ public record AuditSummary(
      * Returns the number of days since the audit was started.
      */
     public long daysInProgress() {
-        return startedAt.until(LocalDateTime.now(), ChronoUnit.DAYS);
+        return startedAt.until(Instant.now(), ChronoUnit.DAYS);
     }
 }

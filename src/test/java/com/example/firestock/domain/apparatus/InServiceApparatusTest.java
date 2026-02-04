@@ -4,6 +4,8 @@ import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.StationId;
 import com.example.firestock.domain.primitives.strings.Barcode;
 import com.example.firestock.domain.primitives.strings.UnitNumber;
+import com.example.firestock.jooq.enums.ApparatusStatus;
+import com.example.firestock.jooq.enums.ApparatusType;
 import java.time.Year;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

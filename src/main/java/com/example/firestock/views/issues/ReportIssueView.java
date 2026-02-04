@@ -28,6 +28,8 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.spring.security.AuthenticationContext;
 import jakarta.annotation.security.PermitAll;
 
+import java.time.Clock;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -42,6 +44,7 @@ public class ReportIssueView extends VerticalLayout implements BeforeEnterObserv
 
     private final transient ReportIssueService reportIssueService;
     private final transient AuthenticationContext authenticationContext;
+    private final ZoneId zoneId;
 
     private final TextField lookupField;
     private final VerticalLayout equipmentContainer;
@@ -49,9 +52,10 @@ public class ReportIssueView extends VerticalLayout implements BeforeEnterObserv
 
     private EquipmentForReport currentEquipment;
 
-    public ReportIssueView(ReportIssueService reportIssueService, AuthenticationContext authenticationContext) {
+    public ReportIssueView(ReportIssueService reportIssueService, AuthenticationContext authenticationContext, Clock clock) {
         this.reportIssueService = reportIssueService;
         this.authenticationContext = authenticationContext;
+        this.zoneId = clock.getZone();
 
         addClassName("report-issue-view");
         setSizeFull();
@@ -258,6 +262,7 @@ public class ReportIssueView extends VerticalLayout implements BeforeEnterObserv
             // Show existing issues dialog
             ExistingIssueDialog dialog = new ExistingIssueDialog(
                     openIssues,
+                    zoneId,
                     this::handleAddToExisting,
                     v -> openReportDialog()
             );

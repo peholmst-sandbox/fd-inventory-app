@@ -1,11 +1,11 @@
 package com.example.firestock.audit;
 
 import com.example.firestock.domain.audit.AuditException;
-import com.example.firestock.domain.audit.AuditItemStatus;
+import com.example.firestock.domain.audit.AuditItemStatusUtil;
 import com.example.firestock.domain.audit.FormalAuditItem;
-import com.example.firestock.domain.audit.FormalAuditItemRepository;
-import com.example.firestock.domain.audit.FormalAuditRepository;
 import com.example.firestock.domain.audit.InProgressAudit;
+import com.example.firestock.infrastructure.persistence.FormalAuditItemRepository;
+import com.example.firestock.infrastructure.persistence.FormalAuditRepository;
 import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.FormalAuditId;
 import com.example.firestock.domain.primitives.ids.FormalAuditItemId;
@@ -13,9 +13,13 @@ import com.example.firestock.domain.primitives.ids.IssueId;
 import com.example.firestock.domain.primitives.ids.StationId;
 import com.example.firestock.domain.primitives.ids.UserId;
 import com.example.firestock.issues.IssueDao;
+import com.example.firestock.jooq.enums.AuditItemStatus;
 import com.example.firestock.jooq.enums.EquipmentStatus;
+import com.example.firestock.jooq.enums.ExpiryStatus;
 import com.example.firestock.jooq.enums.IssueCategory;
 import com.example.firestock.jooq.enums.IssueSeverity;
+import com.example.firestock.jooq.enums.ItemCondition;
+import com.example.firestock.jooq.enums.TestResult;
 import com.example.firestock.security.StationAccessEvaluator;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -159,9 +163,9 @@ public class FormalAuditService {
                 audit.id(),
                 audit.apparatusId(),
                 com.example.firestock.jooq.enums.AuditStatus.IN_PROGRESS,
-                java.time.LocalDateTime.ofInstant(audit.startedAt(), java.time.ZoneId.systemDefault()),
+                audit.startedAt(),
                 null,
-                audit.pausedAt() != null ? java.time.LocalDateTime.ofInstant(audit.pausedAt(), java.time.ZoneId.systemDefault()) : null,
+                audit.pausedAt(),
                 audit.progress().totalItems(),
                 audit.progress().auditedCount(),
                 audit.progress().issuesFoundCount(),
@@ -233,18 +237,15 @@ public class FormalAuditService {
             throw new AuditException.ItemAlreadyAuditedException(request.auditId(), request.toTarget());
         }
 
-        // Map request status to domain status
-        var domainStatus = mapToDomainStatus(request.status());
-
         // BR-05: Create issue if needed
         IssueId issueId = null;
-        if (domainStatus.requiresIssue()) {
+        if (AuditItemStatusUtil.requiresIssue(request.status())) {
             issueId = createIssueForAudit(request, audit, performedBy);
         }
 
         // Update equipment status if needed
         if (request.equipmentItemId() != null) {
-            EquipmentStatus newStatus = mapAuditStatusToEquipmentStatus(domainStatus);
+            EquipmentStatus newStatus = mapAuditStatusToEquipmentStatus(request.status());
             if (newStatus != null) {
                 auditEquipmentDao.updateStatus(request.equipmentItemId(), newStatus);
             }
@@ -260,10 +261,10 @@ public class FormalAuditService {
                 request.compartmentId(),
                 request.manifestEntryId(),
                 request.isUnexpected(),
-                domainStatus,
-                mapToDomainCondition(request.condition()),
-                mapToDomainTestResult(request.testResult()),
-                mapToDomainExpiryStatus(request.expiryStatus()),
+                request.status(),
+                request.condition(),
+                request.testResult(),
+                request.expiryStatus(),
                 request.quantityFound() != null && request.quantityExpected() != null
                         ? new com.example.firestock.domain.audit.QuantityComparison(request.quantityExpected(), request.quantityFound())
                         : null,
@@ -280,22 +281,6 @@ public class FormalAuditService {
                 : audit.withItemAudited(issueId != null, now());
 
         auditRepository.save(updatedAudit);
-    }
-
-    private AuditItemStatus mapToDomainStatus(com.example.firestock.jooq.enums.AuditItemStatus status) {
-        return AuditItemStatus.valueOf(status.name());
-    }
-
-    private com.example.firestock.domain.audit.ItemCondition mapToDomainCondition(com.example.firestock.jooq.enums.ItemCondition condition) {
-        return condition == null ? null : com.example.firestock.domain.audit.ItemCondition.valueOf(condition.name());
-    }
-
-    private com.example.firestock.domain.audit.TestResult mapToDomainTestResult(com.example.firestock.jooq.enums.TestResult testResult) {
-        return testResult == null ? null : com.example.firestock.domain.audit.TestResult.valueOf(testResult.name());
-    }
-
-    private com.example.firestock.domain.audit.ExpiryStatus mapToDomainExpiryStatus(com.example.firestock.jooq.enums.ExpiryStatus expiryStatus) {
-        return expiryStatus == null ? null : com.example.firestock.domain.audit.ExpiryStatus.valueOf(expiryStatus.name());
     }
 
     private EquipmentStatus mapAuditStatusToEquipmentStatus(AuditItemStatus auditStatus) {
@@ -315,8 +300,7 @@ public class FormalAuditService {
         IssueCategory category;
         IssueSeverity severity;
 
-        var status = mapToDomainStatus(request.status());
-        switch (status) {
+        switch (request.status()) {
             case MISSING -> {
                 title = "Missing item found during formal audit";
                 category = IssueCategory.MISSING;
