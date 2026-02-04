@@ -54,6 +54,7 @@ public class FormalAuditItemMapper {
                 toDomainExpiryStatus(record.getExpiryStatus()),
                 quantityComparison,
                 record.getConditionNotes(),
+                record.getTestNotes(),
                 toInstant(record.getAuditedAt())
         );
     }
@@ -74,7 +75,8 @@ public class FormalAuditItemMapper {
         record.setItemCondition(toJooqCondition(item.condition()));
         record.setTestResult(toJooqTestResult(item.testResult()));
         record.setExpiryStatus(toJooqExpiryStatus(item.expiryStatus()));
-        record.setConditionNotes(item.notes());
+        record.setConditionNotes(item.conditionNotes());
+        record.setTestNotes(item.testNotes());
         record.setAuditedAt(toLocalDateTime(item.auditedAt()));
 
         // Set target fields (XOR - only one should be set)

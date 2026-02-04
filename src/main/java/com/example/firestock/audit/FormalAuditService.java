@@ -1,13 +1,18 @@
 package com.example.firestock.audit;
 
+import com.example.firestock.domain.audit.AuditException;
+import com.example.firestock.domain.audit.AuditItemStatus;
+import com.example.firestock.domain.audit.FormalAuditItem;
+import com.example.firestock.domain.audit.FormalAuditItemRepository;
+import com.example.firestock.domain.audit.FormalAuditRepository;
+import com.example.firestock.domain.audit.InProgressAudit;
 import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.FormalAuditId;
+import com.example.firestock.domain.primitives.ids.FormalAuditItemId;
 import com.example.firestock.domain.primitives.ids.IssueId;
 import com.example.firestock.domain.primitives.ids.StationId;
 import com.example.firestock.domain.primitives.ids.UserId;
 import com.example.firestock.issues.IssueDao;
-import com.example.firestock.jooq.enums.AuditItemStatus;
-import com.example.firestock.jooq.enums.AuditStatus;
 import com.example.firestock.jooq.enums.EquipmentStatus;
 import com.example.firestock.jooq.enums.IssueCategory;
 import com.example.firestock.jooq.enums.IssueSeverity;
@@ -16,6 +21,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -44,25 +51,32 @@ import java.util.Optional;
 public class FormalAuditService {
 
     private final FormalAuditQuery auditQuery;
-    private final FormalAuditDao auditDao;
-    private final FormalAuditItemDao auditItemDao;
+    private final FormalAuditRepository auditRepository;
+    private final FormalAuditItemRepository auditItemRepository;
     private final IssueDao issueDao;
     private final AuditEquipmentDao auditEquipmentDao;
     private final StationAccessEvaluator stationAccess;
+    private final Clock clock;
 
     public FormalAuditService(
             FormalAuditQuery auditQuery,
-            FormalAuditDao auditDao,
-            FormalAuditItemDao auditItemDao,
+            FormalAuditRepository auditRepository,
+            FormalAuditItemRepository auditItemRepository,
             IssueDao issueDao,
             AuditEquipmentDao auditEquipmentDao,
-            StationAccessEvaluator stationAccess) {
+            StationAccessEvaluator stationAccess,
+            Clock clock) {
         this.auditQuery = auditQuery;
-        this.auditDao = auditDao;
-        this.auditItemDao = auditItemDao;
+        this.auditRepository = auditRepository;
+        this.auditItemRepository = auditItemRepository;
         this.issueDao = issueDao;
         this.auditEquipmentDao = auditEquipmentDao;
         this.stationAccess = stationAccess;
+        this.clock = clock;
+    }
+
+    private Instant now() {
+        return clock.instant();
     }
 
     /**
@@ -96,35 +110,33 @@ public class FormalAuditService {
      * @param apparatusId the apparatus to audit
      * @param performedBy the user starting the audit
      * @return the created audit summary
-     * @throws ActiveAuditExistsException if an active audit already exists for this apparatus
+     * @throws AuditException.ActiveAuditExistsException if an active audit already exists for this apparatus
      * @throws org.springframework.security.access.AccessDeniedException if the user does not have access
      */
     public AuditSummary startAudit(ApparatusId apparatusId, UserId performedBy) {
         stationAccess.requireApparatusAccess(apparatusId);
 
         // BR-02: Check for existing active audit
-        var existingAudit = auditQuery.findActiveByApparatusId(apparatusId);
+        var existingAudit = auditRepository.findActiveByApparatusId(apparatusId);
         if (existingAudit.isPresent()) {
-            throw new ActiveAuditExistsException(
-                    "An active formal audit already exists for this apparatus. " +
-                            "Complete or abandon the existing audit before starting a new one.");
+            throw new AuditException.ActiveAuditExistsException(apparatusId, existingAudit.get().id());
         }
 
-        // Get total item count by querying the apparatus
-        var details = auditQuery.findDetailsById(null); // We need a different approach
-
-        // Create a dummy audit to get item count
-        var stationId = stationAccess.getStationIdForApparatus(apparatusId);
+        // Count items on apparatus for progress tracking
         int totalItems = countItemsForApparatus(apparatusId);
 
-        FormalAuditId auditId = auditDao.insert(apparatusId, stationId, performedBy, totalItems);
+        // Create new audit using the domain model
+        var auditId = FormalAuditId.generate();
+        var now = now();
+        var audit = InProgressAudit.start(auditId, apparatusId, performedBy, now, totalItems);
+
+        auditRepository.save(audit);
 
         return auditQuery.findById(auditId)
                 .orElseThrow(() -> new IllegalStateException("Failed to create formal audit"));
     }
 
     private int countItemsForApparatus(ApparatusId apparatusId) {
-        // Use a temporary query to count items
         return auditEquipmentDao.countItemsOnApparatus(apparatusId);
     }
 
@@ -138,19 +150,23 @@ public class FormalAuditService {
     @Transactional(readOnly = true)
     public Optional<AuditSummary> getActiveAudit(ApparatusId apparatusId) {
         stationAccess.requireApparatusAccess(apparatusId);
-        return auditQuery.findActiveByApparatusId(apparatusId)
-                .map(r -> new AuditSummary(
-                        r.getId(),
-                        r.getApparatusId(),
-                        r.getStatus(),
-                        r.getStartedAt(),
-                        r.getCompletedAt(),
-                        r.getPausedAt(),
-                        r.getTotalItems(),
-                        r.getAuditedCount(),
-                        r.getIssuesFoundCount(),
-                        r.getUnexpectedItemsCount()
-                ));
+        return auditRepository.findActiveByApparatusId(apparatusId)
+                .map(this::toAuditSummary);
+    }
+
+    private AuditSummary toAuditSummary(InProgressAudit audit) {
+        return new AuditSummary(
+                audit.id(),
+                audit.apparatusId(),
+                com.example.firestock.jooq.enums.AuditStatus.IN_PROGRESS,
+                java.time.LocalDateTime.ofInstant(audit.startedAt(), java.time.ZoneId.systemDefault()),
+                null,
+                audit.pausedAt() != null ? java.time.LocalDateTime.ofInstant(audit.pausedAt(), java.time.ZoneId.systemDefault()) : null,
+                audit.progress().totalItems(),
+                audit.progress().auditedCount(),
+                audit.progress().issuesFoundCount(),
+                audit.progress().unexpectedItemsCount()
+        );
     }
 
     /**
@@ -190,62 +206,96 @@ public class FormalAuditService {
      *
      * @param request the audit details
      * @param performedBy the user performing the audit
-     * @throws IllegalArgumentException if the audit is not found or not in progress
-     * @throws ItemAlreadyAuditedException if the item has already been audited
+     * @throws AuditException.AuditNotFoundException if the audit is not found
+     * @throws AuditException.AuditAlreadyCompletedException if the audit is not in progress
+     * @throws AuditException.ItemAlreadyAuditedException if the item has already been audited
      * @throws org.springframework.security.access.AccessDeniedException if the user does not have access
      */
     public void auditItem(AuditItemRequest request, UserId performedBy) {
         stationAccess.requireFormalAuditAccess(request.auditId());
 
         // Validate the audit exists and is in progress
-        var audit = auditQuery.findRecordById(request.auditId())
-                .orElseThrow(() -> new IllegalArgumentException("Formal audit not found: " + request.auditId()));
-
-        if (audit.getStatus() != AuditStatus.IN_PROGRESS) {
-            throw new IllegalArgumentException("Cannot audit items on an audit that is not in progress");
-        }
+        var audit = auditRepository.findInProgressById(request.auditId())
+                .orElseThrow(() -> {
+                    // Check if it exists but is not in progress
+                    if (!auditRepository.existsById(request.auditId())) {
+                        return new AuditException.AuditNotFoundException(request.auditId());
+                    }
+                    return new AuditException.AuditAlreadyCompletedException(request.auditId());
+                });
 
         // Check if already audited
-        if (auditItemDao.existsForItem(request.auditId(),
-                request.equipmentItemId(), request.consumableStockId())) {
-            throw new ItemAlreadyAuditedException("This item has already been audited in this formal audit");
+        boolean alreadyAudited = request.equipmentItemId() != null
+                ? auditItemRepository.existsByAuditIdAndEquipmentItemId(request.auditId(), request.equipmentItemId())
+                : auditItemRepository.existsByAuditIdAndConsumableStockId(request.auditId(), request.consumableStockId());
+
+        if (alreadyAudited) {
+            throw new AuditException.ItemAlreadyAuditedException(request.auditId(), request.toTarget());
         }
+
+        // Map request status to domain status
+        var domainStatus = mapToDomainStatus(request.status());
 
         // BR-05: Create issue if needed
         IssueId issueId = null;
-        if (request.requiresIssue()) {
+        if (domainStatus.requiresIssue()) {
             issueId = createIssueForAudit(request, audit, performedBy);
         }
 
         // Update equipment status if needed
         if (request.equipmentItemId() != null) {
-            EquipmentStatus newStatus = mapAuditStatusToEquipmentStatus(request.status());
+            EquipmentStatus newStatus = mapAuditStatusToEquipmentStatus(domainStatus);
             if (newStatus != null) {
                 auditEquipmentDao.updateStatus(request.equipmentItemId(), newStatus);
             }
         }
 
-        // Record the audit item
-        auditItemDao.insert(
+        // Create and save the audit item
+        var auditItemId = FormalAuditItemId.generate();
+
+        var auditItem = new FormalAuditItem(
+                auditItemId,
                 request.auditId(),
+                request.toTarget(),
                 request.compartmentId(),
-                request.equipmentItemId(),
-                request.consumableStockId(),
                 request.manifestEntryId(),
-                request.status(),
-                request.condition(),
-                request.testResult(),
-                request.expiryStatus(),
+                request.isUnexpected(),
+                domainStatus,
+                mapToDomainCondition(request.condition()),
+                mapToDomainTestResult(request.testResult()),
+                mapToDomainExpiryStatus(request.expiryStatus()),
+                request.quantityFound() != null && request.quantityExpected() != null
+                        ? new com.example.firestock.domain.audit.QuantityComparison(request.quantityExpected(), request.quantityFound())
+                        : null,
                 request.conditionNotes(),
                 request.testNotes(),
-                request.quantityFound(),
-                request.quantityExpected(),
-                request.isUnexpected(),
-                issueId
+                now()
         );
 
-        // Update audit counts
-        auditDao.incrementCounts(request.auditId(), issueId != null, request.isUnexpected());
+        auditItemRepository.save(auditItem);
+
+        // Update audit progress
+        var updatedAudit = request.isUnexpected()
+                ? audit.withUnexpectedItem(issueId != null, now())
+                : audit.withItemAudited(issueId != null, now());
+
+        auditRepository.save(updatedAudit);
+    }
+
+    private AuditItemStatus mapToDomainStatus(com.example.firestock.jooq.enums.AuditItemStatus status) {
+        return AuditItemStatus.valueOf(status.name());
+    }
+
+    private com.example.firestock.domain.audit.ItemCondition mapToDomainCondition(com.example.firestock.jooq.enums.ItemCondition condition) {
+        return condition == null ? null : com.example.firestock.domain.audit.ItemCondition.valueOf(condition.name());
+    }
+
+    private com.example.firestock.domain.audit.TestResult mapToDomainTestResult(com.example.firestock.jooq.enums.TestResult testResult) {
+        return testResult == null ? null : com.example.firestock.domain.audit.TestResult.valueOf(testResult.name());
+    }
+
+    private com.example.firestock.domain.audit.ExpiryStatus mapToDomainExpiryStatus(com.example.firestock.jooq.enums.ExpiryStatus expiryStatus) {
+        return expiryStatus == null ? null : com.example.firestock.domain.audit.ExpiryStatus.valueOf(expiryStatus.name());
     }
 
     private EquipmentStatus mapAuditStatusToEquipmentStatus(AuditItemStatus auditStatus) {
@@ -259,13 +309,14 @@ public class FormalAuditService {
     }
 
     private IssueId createIssueForAudit(AuditItemRequest request,
-                                        com.example.firestock.jooq.tables.records.FormalAuditRecord audit,
+                                        InProgressAudit audit,
                                         UserId reportedBy) {
         String title;
         IssueCategory category;
         IssueSeverity severity;
 
-        switch (request.status()) {
+        var status = mapToDomainStatus(request.status());
+        switch (status) {
             case MISSING -> {
                 title = "Missing item found during formal audit";
                 category = IssueCategory.MISSING;
@@ -307,11 +358,13 @@ public class FormalAuditService {
             description.append("Test result: ").append(request.testResult().getLiteral()).append("\n");
         }
 
+        var stationId = auditQuery.getStationIdForAudit(request.auditId());
+
         return issueDao.insert(
                 request.equipmentItemId(),
                 request.consumableStockId(),
-                audit.getApparatusId(),
-                audit.getStationId(),
+                audit.apparatusId(),
+                stationId,
                 title,
                 description.toString(),
                 severity,
@@ -328,29 +381,25 @@ public class FormalAuditService {
      *
      * @param auditId the audit to complete
      * @return the updated audit summary
-     * @throws IllegalArgumentException if the audit is not found or not in progress
-     * @throws IncompleteAuditException if not all items have been audited
+     * @throws AuditException.AuditNotFoundException if the audit is not found
+     * @throws AuditException.AuditAlreadyCompletedException if the audit is not in progress
+     * @throws AuditException.IncompleteAuditException if not all items have been audited
      * @throws org.springframework.security.access.AccessDeniedException if the user does not have access
      */
     public AuditSummary completeAudit(FormalAuditId auditId) {
         stationAccess.requireFormalAuditAccess(auditId);
 
-        var audit = auditQuery.findRecordById(auditId)
-                .orElseThrow(() -> new IllegalArgumentException("Formal audit not found: " + auditId));
+        var audit = auditRepository.findInProgressById(auditId)
+                .orElseThrow(() -> {
+                    if (!auditRepository.existsById(auditId)) {
+                        return new AuditException.AuditNotFoundException(auditId);
+                    }
+                    return new AuditException.AuditAlreadyCompletedException(auditId);
+                });
 
-        if (audit.getStatus() != AuditStatus.IN_PROGRESS) {
-            throw new IllegalArgumentException("Cannot complete an audit that is not in progress");
-        }
-
-        // BR-03: Verify all items have been audited
-        int auditedCount = auditItemDao.countByAuditId(auditId);
-        if (auditedCount < audit.getTotalItems()) {
-            throw new IncompleteAuditException(
-                    String.format("Cannot complete audit: only %d of %d items audited",
-                            auditedCount, audit.getTotalItems()));
-        }
-
-        auditDao.markCompleted(auditId);
+        // BR-03: complete() enforces all items must be audited
+        var completedAudit = audit.complete(now());
+        auditRepository.save(completedAudit);
 
         return auditQuery.findById(auditId)
                 .orElseThrow(() -> new IllegalStateException("Failed to retrieve completed audit"));
@@ -360,20 +409,23 @@ public class FormalAuditService {
      * Abandons a formal audit without completing it.
      *
      * @param auditId the audit to abandon
-     * @throws IllegalArgumentException if the audit is not found or not in progress
+     * @throws AuditException.AuditNotFoundException if the audit is not found
+     * @throws AuditException.AuditAlreadyCompletedException if the audit is not in progress
      * @throws org.springframework.security.access.AccessDeniedException if the user does not have access
      */
     public void abandonAudit(FormalAuditId auditId) {
         stationAccess.requireFormalAuditAccess(auditId);
 
-        var audit = auditQuery.findRecordById(auditId)
-                .orElseThrow(() -> new IllegalArgumentException("Formal audit not found: " + auditId));
+        var audit = auditRepository.findInProgressById(auditId)
+                .orElseThrow(() -> {
+                    if (!auditRepository.existsById(auditId)) {
+                        return new AuditException.AuditNotFoundException(auditId);
+                    }
+                    return new AuditException.AuditAlreadyCompletedException(auditId);
+                });
 
-        if (audit.getStatus() != AuditStatus.IN_PROGRESS) {
-            throw new IllegalArgumentException("Cannot abandon an audit that is not in progress");
-        }
-
-        auditDao.markAbandoned(auditId);
+        var abandonedAudit = audit.abandon(null, now());
+        auditRepository.save(abandonedAudit);
     }
 
     /**
@@ -381,88 +433,74 @@ public class FormalAuditService {
      * The audit remains IN_PROGRESS but is marked as paused.
      *
      * @param auditId the audit to save
-     * @throws IllegalArgumentException if the audit is not found or not in progress
+     * @throws AuditException.AuditNotFoundException if the audit is not found
+     * @throws AuditException.AuditAlreadyCompletedException if the audit is not in progress
+     * @throws AuditException.AuditAlreadyPausedException if the audit is already paused
      * @throws org.springframework.security.access.AccessDeniedException if the user does not have access
      */
     public void saveAndExit(FormalAuditId auditId) {
         stationAccess.requireFormalAuditAccess(auditId);
 
-        var audit = auditQuery.findRecordById(auditId)
-                .orElseThrow(() -> new IllegalArgumentException("Formal audit not found: " + auditId));
+        var audit = auditRepository.findInProgressById(auditId)
+                .orElseThrow(() -> {
+                    if (!auditRepository.existsById(auditId)) {
+                        return new AuditException.AuditNotFoundException(auditId);
+                    }
+                    return new AuditException.AuditAlreadyCompletedException(auditId);
+                });
 
-        if (audit.getStatus() != AuditStatus.IN_PROGRESS) {
-            throw new IllegalArgumentException("Cannot save an audit that is not in progress");
-        }
-
-        auditDao.markPaused(auditId);
+        var pausedAudit = audit.pause(now());
+        auditRepository.save(pausedAudit);
     }
 
     /**
      * Resumes a paused audit.
      *
      * @param auditId the audit to resume
-     * @throws IllegalArgumentException if the audit is not found or not in progress
+     * @throws AuditException.AuditNotFoundException if the audit is not found
+     * @throws AuditException.AuditAlreadyCompletedException if the audit is not in progress
+     * @throws AuditException.AuditNotPausedException if the audit is not paused
      * @throws org.springframework.security.access.AccessDeniedException if the user does not have access
      */
     public void resumeAudit(FormalAuditId auditId) {
         stationAccess.requireFormalAuditAccess(auditId);
 
-        var audit = auditQuery.findRecordById(auditId)
-                .orElseThrow(() -> new IllegalArgumentException("Formal audit not found: " + auditId));
+        var audit = auditRepository.findInProgressById(auditId)
+                .orElseThrow(() -> {
+                    if (!auditRepository.existsById(auditId)) {
+                        return new AuditException.AuditNotFoundException(auditId);
+                    }
+                    return new AuditException.AuditAlreadyCompletedException(auditId);
+                });
 
-        if (audit.getStatus() != AuditStatus.IN_PROGRESS) {
-            throw new IllegalArgumentException("Cannot resume an audit that is not in progress");
-        }
-
-        auditDao.resume(auditId);
+        var resumedAudit = audit.resume(now());
+        auditRepository.save(resumedAudit);
     }
 
     /**
      * Updates the notes for an audit.
      *
+     * <p>Notes can only be updated on in-progress audits per BR-07.
+     *
      * @param auditId the audit to update
      * @param notes the notes to save
-     * @throws IllegalArgumentException if the audit is not found
+     * @throws AuditException.AuditNotFoundException if the audit is not found
+     * @throws AuditException.AuditAlreadyCompletedException if the audit is completed
      * @throws org.springframework.security.access.AccessDeniedException if the user does not have access
      */
     public void updateNotes(FormalAuditId auditId, String notes) {
         stationAccess.requireFormalAuditAccess(auditId);
 
-        var audit = auditQuery.findRecordById(auditId)
-                .orElseThrow(() -> new IllegalArgumentException("Formal audit not found: " + auditId));
+        var audit = auditRepository.findInProgressById(auditId)
+                .orElseThrow(() -> {
+                    // BR-07: Completed audits are read-only
+                    if (!auditRepository.existsById(auditId)) {
+                        return new AuditException.AuditNotFoundException(auditId);
+                    }
+                    return new AuditException.AuditAlreadyCompletedException(auditId);
+                });
 
-        // BR-07: Completed audits are read-only
-        if (audit.getStatus() == AuditStatus.COMPLETED) {
-            throw new IllegalArgumentException("Cannot modify a completed audit");
-        }
-
-        auditDao.updateNotes(auditId, notes);
-    }
-
-    /**
-     * Exception thrown when attempting to start an audit when one already exists.
-     */
-    public static class ActiveAuditExistsException extends RuntimeException {
-        public ActiveAuditExistsException(String message) {
-            super(message);
-        }
-    }
-
-    /**
-     * Exception thrown when attempting to complete an audit before all items are audited.
-     */
-    public static class IncompleteAuditException extends RuntimeException {
-        public IncompleteAuditException(String message) {
-            super(message);
-        }
-    }
-
-    /**
-     * Exception thrown when an item has already been audited in this audit.
-     */
-    public static class ItemAlreadyAuditedException extends RuntimeException {
-        public ItemAlreadyAuditedException(String message) {
-            super(message);
-        }
+        var updatedAudit = audit.withNotes(notes);
+        auditRepository.save(updatedAudit);
     }
 }

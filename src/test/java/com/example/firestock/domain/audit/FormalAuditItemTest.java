@@ -110,7 +110,8 @@ class FormalAuditItemTest {
             assertThat(item.condition()).isNull();
             assertThat(item.testResult()).isNull();
             assertThat(item.expiryStatus()).isNull();
-            assertThat(item.notes()).isNull();
+            assertThat(item.conditionNotes()).isNull();
+            assertThat(item.testNotes()).isNull();
         }
     }
 
@@ -158,7 +159,7 @@ class FormalAuditItemTest {
             assertThatThrownBy(() -> new FormalAuditItem(
                     null, auditId, EquipmentTarget.of(equipmentId),
                     null, null, false,
-                    AuditItemStatus.NOT_AUDITED, null, null, null, null, null, null))
+                    AuditItemStatus.NOT_AUDITED, null, null, null, null, null, null, null))
                     .isInstanceOf(NullPointerException.class)
                     .hasMessageContaining("Audit item ID cannot be null");
         }
@@ -168,7 +169,7 @@ class FormalAuditItemTest {
             assertThatThrownBy(() -> new FormalAuditItem(
                     itemId, null, EquipmentTarget.of(equipmentId),
                     null, null, false,
-                    AuditItemStatus.NOT_AUDITED, null, null, null, null, null, null))
+                    AuditItemStatus.NOT_AUDITED, null, null, null, null, null, null, null))
                     .isInstanceOf(NullPointerException.class)
                     .hasMessageContaining("Audit ID cannot be null");
         }
@@ -178,7 +179,7 @@ class FormalAuditItemTest {
             assertThatThrownBy(() -> new FormalAuditItem(
                     itemId, auditId, null,
                     null, null, false,
-                    AuditItemStatus.NOT_AUDITED, null, null, null, null, null, null))
+                    AuditItemStatus.NOT_AUDITED, null, null, null, null, null, null, null))
                     .isInstanceOf(NullPointerException.class)
                     .hasMessageContaining("Audit target cannot be null");
         }
@@ -188,7 +189,7 @@ class FormalAuditItemTest {
             assertThatThrownBy(() -> new FormalAuditItem(
                     itemId, auditId, EquipmentTarget.of(equipmentId),
                     null, null, false,
-                    null, null, null, null, null, null, null))
+                    null, null, null, null, null, null, null, null))
                     .isInstanceOf(NullPointerException.class)
                     .hasMessageContaining("Audit item status cannot be null");
         }
@@ -201,7 +202,7 @@ class FormalAuditItemTest {
             assertThatThrownBy(() -> new FormalAuditItem(
                     itemId, auditId, EquipmentTarget.of(equipmentId),
                     null, null, false,
-                    AuditItemStatus.VERIFIED, null, null, null, quantityComparison, null, null))
+                    AuditItemStatus.VERIFIED, null, null, null, quantityComparison, null, null, null))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("Quantity comparison can only be set for consumable targets");
         }
@@ -211,7 +212,7 @@ class FormalAuditItemTest {
             assertThatThrownBy(() -> new FormalAuditItem(
                     itemId, auditId, EquipmentTarget.of(equipmentId),
                     compartmentId, manifestEntryId, true,  // isUnexpected=true with manifestEntryId
-                    AuditItemStatus.NOT_AUDITED, null, null, null, null, null, null))
+                    AuditItemStatus.NOT_AUDITED, null, null, null, null, null, null, null))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("Unexpected items cannot have a manifest entry ID");
         }
@@ -232,6 +233,7 @@ class FormalAuditItemTest {
                     TestResult.PASSED,
                     ExpiryStatus.OK,
                     "All checks passed",
+                    "Test notes here",
                     auditedAt
             );
 
@@ -239,7 +241,8 @@ class FormalAuditItemTest {
             assertThat(audited.condition()).isEqualTo(ItemCondition.GOOD);
             assertThat(audited.testResult()).isEqualTo(TestResult.PASSED);
             assertThat(audited.expiryStatus()).isEqualTo(ExpiryStatus.OK);
-            assertThat(audited.notes()).isEqualTo("All checks passed");
+            assertThat(audited.conditionNotes()).isEqualTo("All checks passed");
+            assertThat(audited.testNotes()).isEqualTo("Test notes here");
             assertThat(audited.auditedAt()).isEqualTo(auditedAt);
         }
 
@@ -254,6 +257,7 @@ class FormalAuditItemTest {
                     TestResult.NOT_TESTED,
                     null,
                     "Cracked handle, needs replacement",
+                    null,
                     auditedAt
             );
 
@@ -271,6 +275,7 @@ class FormalAuditItemTest {
                     AuditItemStatus.FAILED_INSPECTION,
                     ItemCondition.FAIR,
                     TestResult.FAILED,
+                    null,
                     null,
                     "Battery test failed - 40% capacity",
                     auditedAt
@@ -292,6 +297,7 @@ class FormalAuditItemTest {
                     null,
                     null,
                     "Item not found in assigned compartment",
+                    null,
                     auditedAt
             );
 
@@ -312,6 +318,7 @@ class FormalAuditItemTest {
                     AuditItemStatus.VERIFIED,
                     ItemCondition.GOOD,
                     TestResult.PASSED,
+                    null,
                     null,
                     null,
                     auditedAt
@@ -440,6 +447,7 @@ class FormalAuditItemTest {
                     TestResult.PASSED,
                     null,
                     null,
+                    null,
                     Instant.now()
             );
 
@@ -470,7 +478,7 @@ class FormalAuditItemTest {
             return new FormalAuditItem(
                     itemId, auditId, EquipmentTarget.of(equipmentId),
                     null, null, false,
-                    status, null, null, null, null, null, Instant.now()
+                    status, null, null, null, null, null, null, Instant.now()
             );
         }
     }
@@ -489,7 +497,8 @@ class FormalAuditItemTest {
             assertThat(item.testResultOpt()).isEmpty();
             assertThat(item.expiryStatusOpt()).isEmpty();
             assertThat(item.quantityComparisonOpt()).isEmpty();
-            assertThat(item.notesOpt()).isEmpty();
+            assertThat(item.conditionNotesOpt()).isEmpty();
+            assertThat(item.testNotesOpt()).isEmpty();
             assertThat(item.auditedAtOpt()).isEmpty();
         }
 
@@ -504,6 +513,7 @@ class FormalAuditItemTest {
                     TestResult.PASSED,
                     ExpiryStatus.OK,
                     null,
+                    "Condition notes",
                     "Test notes",
                     auditedAt
             );
@@ -513,7 +523,8 @@ class FormalAuditItemTest {
             assertThat(item.conditionOpt()).contains(ItemCondition.GOOD);
             assertThat(item.testResultOpt()).contains(TestResult.PASSED);
             assertThat(item.expiryStatusOpt()).contains(ExpiryStatus.OK);
-            assertThat(item.notesOpt()).contains("Test notes");
+            assertThat(item.conditionNotesOpt()).contains("Condition notes");
+            assertThat(item.testNotesOpt()).contains("Test notes");
             assertThat(item.auditedAtOpt()).contains(auditedAt);
         }
     }
@@ -530,6 +541,7 @@ class FormalAuditItemTest {
                     AuditItemStatus.VERIFIED,
                     ItemCondition.GOOD,
                     TestResult.PASSED,
+                    null,
                     null,
                     null,
                     Instant.now()

@@ -1,5 +1,8 @@
 package com.example.firestock.audit;
 
+import com.example.firestock.domain.audit.AuditedItemTarget;
+import com.example.firestock.domain.audit.ConsumableTarget;
+import com.example.firestock.domain.audit.EquipmentTarget;
 import com.example.firestock.domain.primitives.ids.CompartmentId;
 import com.example.firestock.domain.primitives.ids.ConsumableStockId;
 import com.example.firestock.domain.primitives.ids.EquipmentItemId;
@@ -61,5 +64,16 @@ public record AuditItemRequest(
                 || status == AuditItemStatus.DAMAGED
                 || status == AuditItemStatus.FAILED_INSPECTION
                 || status == AuditItemStatus.EXPIRED;
+    }
+
+    /**
+     * Creates an {@link AuditedItemTarget} from this request.
+     *
+     * @return the target (either equipment or consumable)
+     */
+    public AuditedItemTarget toTarget() {
+        return equipmentItemId != null
+                ? new EquipmentTarget(equipmentItemId)
+                : new ConsumableTarget(consumableStockId);
     }
 }
