@@ -3,7 +3,6 @@ package com.example.firestock.infrastructure.persistence;
 import com.example.firestock.domain.apparatus.Compartment;
 import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.CompartmentId;
-import com.example.firestock.infrastructure.persistence.mapper.CompartmentMapper;
 import com.example.firestock.jooq.enums.CompartmentLocation;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;

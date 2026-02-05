@@ -5,7 +5,6 @@ import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.CompartmentId;
 import com.example.firestock.domain.primitives.ids.EquipmentTypeId;
 import com.example.firestock.domain.primitives.ids.ManifestEntryId;
-import com.example.firestock.infrastructure.persistence.mapper.ManifestEntryMapper;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
 

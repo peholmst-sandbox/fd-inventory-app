@@ -2,7 +2,6 @@ package com.example.firestock.infrastructure.persistence;
 
 import com.example.firestock.domain.equipment.EquipmentItem;
 import com.example.firestock.domain.primitives.ids.EquipmentItemId;
-import com.example.firestock.infrastructure.persistence.mapper.EquipmentItemMapper;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
 

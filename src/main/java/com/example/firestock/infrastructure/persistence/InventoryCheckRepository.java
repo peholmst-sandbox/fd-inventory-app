@@ -8,7 +8,6 @@ import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.InventoryCheckId;
 import com.example.firestock.domain.primitives.ids.StationId;
 import com.example.firestock.domain.primitives.ids.UserId;
-import com.example.firestock.infrastructure.persistence.mapper.InventoryCheckMapper;
 import com.example.firestock.jooq.enums.CheckStatus;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;

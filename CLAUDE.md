@@ -29,24 +29,15 @@ This is a Vaadin application built with:
 
 ## Database Setup
 
-The application requires PostgreSQL. Start it using Docker/Podman:
+The application requires PostgreSQL. Start it using Docker:
 
 ```bash
-# Using Docker
 docker run -d --name firestock-postgres \
   -e POSTGRES_USER=firestock \
   -e POSTGRES_PASSWORD=firestock \
   -e POSTGRES_DB=firestock \
   -p 5432:5432 \
   postgres:16-alpine
-
-# Using Podman
-podman run -d --name firestock-postgres \
-  -e POSTGRES_USER=firestock \
-  -e POSTGRES_PASSWORD=firestock \
-  -e POSTGRES_DB=firestock \
-  -p 5432:5432 \
-  docker.io/postgres:16-alpine
 ```
 
 Flyway migrations run automatically on application startup.
@@ -71,29 +62,13 @@ docker build -t my-application:latest .  # Build Docker image
 
 ### Testing
 
+Integration tests use TestContainers to automatically spin up a PostgreSQL container. Docker must be running.
+
 ```bash
 ./mvnw test                      # Run all tests
 ./mvnw test -Dtest=TaskServiceTest  # Run a single test class
 ./mvnw test -Dtest=TaskServiceTest#tasks_are_stored_in_the_database_with_the_current_timestamp  # Run a single test method
 ```
-
-### Integration Tests with Podman
-
-Integration tests use TestContainers to spin up a PostgreSQL container. When using Podman instead of Docker:
-
-1. Start the Podman socket service:
-   ```bash
-   systemctl --user start podman.socket
-   ```
-
-2. Run tests with the required environment variables:
-   ```bash
-   DOCKER_HOST=unix:///run/user/1000/podman/podman.sock \
-   TESTCONTAINERS_RYUK_DISABLED=true \
-   ./mvnw test
-   ```
-
-The `TESTCONTAINERS_RYUK_DISABLED=true` flag disables the Ryuk container (resource reaper) which can have compatibility issues with Podman.
 
 ## MCP Servers
 

@@ -15,7 +15,7 @@ import static com.example.firestock.jooq.Tables.*;
  * Supports station-agnostic lookups (barcode/serial are globally unique).
  */
 @Component
-public class EquipmentLookupQuery {
+class EquipmentLookupQuery {
 
     private final DSLContext create;
 

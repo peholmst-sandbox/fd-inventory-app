@@ -5,7 +5,6 @@ import com.example.firestock.domain.primitives.ids.ConsumableStockId;
 import com.example.firestock.domain.primitives.ids.EquipmentItemId;
 import com.example.firestock.domain.primitives.ids.InventoryCheckId;
 import com.example.firestock.domain.primitives.ids.InventoryCheckItemId;
-import com.example.firestock.infrastructure.persistence.mapper.InventoryCheckItemMapper;
 import com.example.firestock.jooq.enums.VerificationStatus;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;

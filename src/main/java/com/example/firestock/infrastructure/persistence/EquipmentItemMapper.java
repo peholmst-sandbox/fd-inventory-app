@@ -1,4 +1,4 @@
-package com.example.firestock.infrastructure.persistence.mapper;
+package com.example.firestock.infrastructure.persistence;
 
 import com.example.firestock.domain.equipment.EquipmentItem;
 import com.example.firestock.jooq.tables.records.EquipmentItemRecord;
@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
  * {@link EquipmentItemRecord} jOOQ records.
  */
 @Component
-public class EquipmentItemMapper {
+class EquipmentItemMapper {
 
     /**
      * Converts a jOOQ record to the domain EquipmentItem.

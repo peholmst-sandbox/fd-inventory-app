@@ -1,4 +1,4 @@
-package com.example.firestock.infrastructure.persistence.mapper;
+package com.example.firestock.infrastructure.persistence;
 
 import com.example.firestock.domain.apparatus.Compartment;
 import com.example.firestock.jooq.tables.records.CompartmentRecord;
@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
  * {@link CompartmentRecord} jOOQ records.
  */
 @Component
-public class CompartmentMapper {
+class CompartmentMapper {
 
     /**
      * Converts a jOOQ record to the domain Compartment.

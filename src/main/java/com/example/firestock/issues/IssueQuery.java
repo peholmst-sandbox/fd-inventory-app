@@ -16,7 +16,7 @@ import static com.example.firestock.jooq.Tables.ISSUE;
  * Query class for issue read operations.
  */
 @Component
-public class IssueQuery {
+class IssueQuery {
 
     private static final Set<IssueStatus> OPEN_STATUSES = Set.of(
             IssueStatus.OPEN,

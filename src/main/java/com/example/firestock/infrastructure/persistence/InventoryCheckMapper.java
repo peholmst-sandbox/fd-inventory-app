@@ -1,30 +1,29 @@
-package com.example.firestock.infrastructure.persistence.mapper;
+package com.example.firestock.infrastructure.persistence;
 
-import com.example.firestock.domain.audit.AbandonedAudit;
-import com.example.firestock.domain.audit.AuditProgress;
-import com.example.firestock.domain.audit.CompletedAudit;
-import com.example.firestock.domain.audit.FormalAudit;
-import com.example.firestock.domain.audit.InProgressAudit;
-import com.example.firestock.jooq.enums.AuditStatus;
-import com.example.firestock.jooq.tables.records.FormalAuditRecord;
+import com.example.firestock.domain.inventorycheck.AbandonedCheck;
+import com.example.firestock.domain.inventorycheck.CheckProgress;
+import com.example.firestock.domain.inventorycheck.CompletedCheck;
+import com.example.firestock.domain.inventorycheck.InProgressCheck;
+import com.example.firestock.domain.inventorycheck.InventoryCheck;
+import com.example.firestock.jooq.tables.records.InventoryCheckRecord;
 import org.springframework.stereotype.Component;
 
 /**
- * Mapper for converting between {@link FormalAudit} domain objects and
- * {@link FormalAuditRecord} jOOQ records.
+ * Mapper for converting between {@link InventoryCheck} domain objects and
+ * {@link InventoryCheckRecord} jOOQ records.
  *
  * <p>Handles the sealed interface hierarchy by mapping based on the status field.
  */
 @Component
-public class FormalAuditMapper {
+class InventoryCheckMapper {
 
     /**
      * Converts a jOOQ record to the appropriate domain type based on status.
      *
      * @param record the jOOQ record
-     * @return the domain audit in its correct state
+     * @return the domain check in its correct state
      */
-    public FormalAudit toDomain(FormalAuditRecord record) {
+    public InventoryCheck toDomain(InventoryCheckRecord record) {
         if (record == null) {
             return null;
         }
@@ -34,27 +33,29 @@ public class FormalAuditMapper {
         var startedAt = record.getStartedAt();
 
         return switch (status) {
-            case IN_PROGRESS -> new InProgressAudit(
+            case IN_PROGRESS -> new InProgressCheck(
                     record.getId(),
                     record.getApparatusId(),
+                    record.getStationId(),
                     record.getPerformedById(),
                     startedAt,
                     progress,
-                    record.getPausedAt(),
                     record.getUpdatedAt() != null ? record.getUpdatedAt() : startedAt,
                     record.getNotes()
             );
-            case COMPLETED -> new CompletedAudit(
+            case COMPLETED -> new CompletedCheck(
                     record.getId(),
                     record.getApparatusId(),
+                    record.getStationId(),
                     record.getPerformedById(),
                     startedAt,
                     progress,
                     record.getCompletedAt()
             );
-            case ABANDONED -> new AbandonedAudit(
+            case ABANDONED -> new AbandonedCheck(
                     record.getId(),
                     record.getApparatusId(),
+                    record.getStationId(),
                     record.getPerformedById(),
                     startedAt,
                     progress,
@@ -65,60 +66,56 @@ public class FormalAuditMapper {
     }
 
     /**
-     * Updates a jOOQ record from a domain FormalAudit.
+     * Updates a jOOQ record from a domain InventoryCheck.
      *
      * @param record the record to update
-     * @param audit the domain audit
+     * @param check the domain check
      */
-    public void updateRecord(FormalAuditRecord record, FormalAudit audit) {
-        record.setId(audit.id());
-        record.setApparatusId(audit.apparatusId());
-        record.setPerformedById(audit.auditorId());
-        record.setStatus(audit.status());
-        record.setStartedAt(audit.startedAt());
+    public void updateRecord(InventoryCheckRecord record, InventoryCheck check) {
+        record.setId(check.id());
+        record.setApparatusId(check.apparatusId());
+        record.setStationId(check.stationId());
+        record.setPerformedById(check.performedById());
+        record.setStatus(check.status());
+        record.setStartedAt(check.startedAt());
 
         // Set progress fields
-        var progress = audit.progress();
+        var progress = check.progress();
         record.setTotalItems(progress.totalItems());
-        record.setAuditedCount(progress.auditedCount());
+        record.setVerifiedCount(progress.verifiedCount());
         record.setIssuesFoundCount(progress.issuesFoundCount());
-        record.setUnexpectedItemsCount(progress.unexpectedItemsCount());
 
         // Set state-specific fields
-        switch (audit) {
-            case InProgressAudit inProgress -> {
-                record.setPausedAt(inProgress.pausedAt());
+        switch (check) {
+            case InProgressCheck inProgress -> {
                 record.setUpdatedAt(inProgress.lastActivityAt());
                 record.setNotes(inProgress.notes());
                 record.setCompletedAt(null);
                 record.setAbandonedAt(null);
             }
-            case CompletedAudit completed -> {
+            case CompletedCheck completed -> {
                 record.setCompletedAt(completed.completedAt());
-                record.setPausedAt(null);
                 record.setAbandonedAt(null);
             }
-            case AbandonedAudit abandoned -> {
+            case AbandonedCheck abandoned -> {
                 record.setAbandonedAt(abandoned.abandonedAt());
                 record.setNotes(abandoned.reason());
-                record.setPausedAt(null);
                 record.setCompletedAt(null);
             }
         }
     }
 
     /**
-     * Extracts AuditProgress from a jOOQ record.
+     * Extracts CheckProgress from a jOOQ record.
      *
      * @param record the jOOQ record
-     * @return the audit progress
+     * @return the check progress
      */
-    private AuditProgress extractProgress(FormalAuditRecord record) {
-        return new AuditProgress(
+    private CheckProgress extractProgress(InventoryCheckRecord record) {
+        return new CheckProgress(
                 record.getTotalItems() != null ? record.getTotalItems() : 0,
-                record.getAuditedCount() != null ? record.getAuditedCount() : 0,
-                record.getIssuesFoundCount() != null ? record.getIssuesFoundCount() : 0,
-                record.getUnexpectedItemsCount() != null ? record.getUnexpectedItemsCount() : 0
+                record.getVerifiedCount() != null ? record.getVerifiedCount() : 0,
+                record.getIssuesFoundCount() != null ? record.getIssuesFoundCount() : 0
         );
     }
 }

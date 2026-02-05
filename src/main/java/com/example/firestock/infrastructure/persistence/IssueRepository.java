@@ -15,7 +15,6 @@ import com.example.firestock.domain.primitives.ids.IssueId;
 import com.example.firestock.domain.primitives.ids.StationId;
 import com.example.firestock.domain.primitives.ids.UserId;
 import com.example.firestock.domain.primitives.strings.ReferenceNumber;
-import com.example.firestock.infrastructure.persistence.mapper.IssueMapper;
 import com.example.firestock.jooq.enums.IssueCategory;
 import com.example.firestock.jooq.enums.IssueSeverity;
 import com.example.firestock.jooq.enums.IssueStatus;
