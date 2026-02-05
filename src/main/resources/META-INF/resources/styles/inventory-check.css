@@ -107,6 +107,21 @@
     flex-shrink: 0;
 }
 
+/* ===== Apparatus Card ===== */
+.apparatus-card-active {
+    border-left: 4px solid var(--firestock-primary);
+}
+
+.apparatus-card-active:hover {
+    border-left-width: 4px;
+}
+
+.status-active-check {
+    font-size: var(--lumo-font-size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
 /* ===== Section Title ===== */
 .ic-section-title {
     margin: 0;
