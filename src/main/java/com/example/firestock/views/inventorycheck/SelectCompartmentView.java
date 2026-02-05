@@ -280,11 +280,7 @@ public class SelectCompartmentView extends Div implements BeforeEnterObserver {
     private void navigateToCheckCompartment(CompartmentId compartmentId, boolean readOnly) {
         if (readOnly) {
             // Navigate to Step 5: Check Compartment Read-Only View
-            // TODO: When CheckCompartmentReadOnlyView is created, use its static navigation helper:
-            // CheckCompartmentReadOnlyView.showView(checkId, compartmentId)
-            String route = "inventory-check/check/" + checkId.toString() +
-                "/compartment/" + compartmentId.toString() + "/readonly";
-            getUI().ifPresent(ui -> ui.navigate(route));
+            CheckCompartmentReadOnlyView.showView(checkId, compartmentId);
         } else {
             // Navigate to Step 4: Check Compartment View
             CheckCompartmentView.showView(checkId, compartmentId);
