@@ -219,7 +219,11 @@ public class InventoryCheckRepository {
      * @return true if an active check exists
      */
     public boolean hasActiveCheckForApparatus(ApparatusId apparatusId) {
-        return findActiveByApparatusId(apparatusId).isPresent();
+        return create.fetchExists(
+                create.selectFrom(INVENTORY_CHECK)
+                        .where(INVENTORY_CHECK.APPARATUS_ID.eq(apparatusId))
+                        .and(INVENTORY_CHECK.STATUS.eq(CheckStatus.IN_PROGRESS))
+        );
     }
 
     /**

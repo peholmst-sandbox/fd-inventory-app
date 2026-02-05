@@ -1,15 +1,24 @@
 package com.example.firestock.inventorycheck;
 
+import com.example.firestock.domain.inventorycheck.ConsumableCheckTarget;
+import com.example.firestock.domain.inventorycheck.EquipmentCheckTarget;
+import com.example.firestock.domain.inventorycheck.InProgressCheck;
+import com.example.firestock.domain.inventorycheck.InventoryCheckException;
+import com.example.firestock.domain.inventorycheck.InventoryCheckItem;
 import com.example.firestock.domain.issue.ConsumableIssueTarget;
 import com.example.firestock.domain.issue.EquipmentIssueTarget;
 import com.example.firestock.domain.issue.IssueTarget;
 import com.example.firestock.domain.issue.OpenIssue;
 import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.domain.primitives.ids.InventoryCheckId;
+import com.example.firestock.domain.primitives.ids.InventoryCheckItemId;
 import com.example.firestock.domain.primitives.ids.IssueId;
 import com.example.firestock.domain.primitives.ids.StationId;
 import com.example.firestock.domain.primitives.ids.UserId;
 import com.example.firestock.domain.primitives.strings.Barcode;
+import com.example.firestock.infrastructure.persistence.EquipmentItemRepository;
+import com.example.firestock.infrastructure.persistence.InventoryCheckItemRepository;
+import com.example.firestock.infrastructure.persistence.InventoryCheckRepository;
 import com.example.firestock.infrastructure.persistence.IssueRepository;
 import com.example.firestock.jooq.enums.CheckStatus;
 import com.example.firestock.jooq.enums.EquipmentStatus;
@@ -50,11 +59,10 @@ public class ShiftInventoryCheckService {
 
     private final ApparatusQuery apparatusQuery;
     private final InventoryCheckQuery inventoryCheckQuery;
-    private final InventoryCheckItemQuery inventoryCheckItemQuery;
     private final EquipmentQuery equipmentQuery;
-    private final InventoryCheckDao inventoryCheckDao;
-    private final InventoryCheckItemDao inventoryCheckItemDao;
-    private final EquipmentDao equipmentDao;
+    private final InventoryCheckRepository inventoryCheckRepository;
+    private final InventoryCheckItemRepository inventoryCheckItemRepository;
+    private final EquipmentItemRepository equipmentItemRepository;
     private final IssueRepository issueRepository;
     private final StationAccessEvaluator stationAccess;
     private final Clock clock;
@@ -62,21 +70,19 @@ public class ShiftInventoryCheckService {
     public ShiftInventoryCheckService(
             ApparatusQuery apparatusQuery,
             InventoryCheckQuery inventoryCheckQuery,
-            InventoryCheckItemQuery inventoryCheckItemQuery,
             EquipmentQuery equipmentQuery,
-            InventoryCheckDao inventoryCheckDao,
-            InventoryCheckItemDao inventoryCheckItemDao,
-            EquipmentDao equipmentDao,
+            InventoryCheckRepository inventoryCheckRepository,
+            InventoryCheckItemRepository inventoryCheckItemRepository,
+            EquipmentItemRepository equipmentItemRepository,
             IssueRepository issueRepository,
             StationAccessEvaluator stationAccess,
             Clock clock) {
         this.apparatusQuery = apparatusQuery;
         this.inventoryCheckQuery = inventoryCheckQuery;
-        this.inventoryCheckItemQuery = inventoryCheckItemQuery;
         this.equipmentQuery = equipmentQuery;
-        this.inventoryCheckDao = inventoryCheckDao;
-        this.inventoryCheckItemDao = inventoryCheckItemDao;
-        this.equipmentDao = equipmentDao;
+        this.inventoryCheckRepository = inventoryCheckRepository;
+        this.inventoryCheckItemRepository = inventoryCheckItemRepository;
+        this.equipmentItemRepository = equipmentItemRepository;
         this.issueRepository = issueRepository;
         this.stationAccess = stationAccess;
         this.clock = clock;
@@ -125,8 +131,7 @@ public class ShiftInventoryCheckService {
         stationAccess.requireApparatusAccess(apparatusId);
 
         // BR-01: Check for existing active check
-        var existingCheck = inventoryCheckQuery.findActiveByApparatusId(apparatusId);
-        if (existingCheck.isPresent()) {
+        if (inventoryCheckRepository.hasActiveCheckForApparatus(apparatusId)) {
             throw new ActiveCheckExistsException(
                 "An active inventory check already exists for this apparatus. " +
                 "Complete or abandon the existing check before starting a new one.");
@@ -136,13 +141,17 @@ public class ShiftInventoryCheckService {
         var apparatus = getApparatusDetails(apparatusId);
         int totalItems = apparatus.totalItemCount();
 
-        // Create the check
-        InventoryCheckId checkId = inventoryCheckDao.insert(
+        // Create the check using domain model
+        var checkId = InventoryCheckId.generate();
+        var check = InProgressCheck.start(
+            checkId,
             apparatusId,
             apparatus.stationId(),
             performedBy,
+            clock.instant(),
             totalItems
         );
+        inventoryCheckRepository.save(check);
 
         return inventoryCheckQuery.findById(checkId)
             .orElseThrow(() -> new IllegalStateException("Failed to create inventory check"));
@@ -158,16 +167,16 @@ public class ShiftInventoryCheckService {
     @Transactional(readOnly = true)
     public Optional<InventoryCheckSummary> getActiveCheck(ApparatusId apparatusId) {
         stationAccess.requireApparatusAccess(apparatusId);
-        return inventoryCheckQuery.findActiveByApparatusId(apparatusId)
-            .map(r -> new InventoryCheckSummary(
-                r.getId(),
-                r.getApparatusId(),
-                r.getStatus(),
-                r.getStartedAt(),
-                r.getCompletedAt(),
-                r.getTotalItems(),
-                r.getVerifiedCount(),
-                r.getIssuesFoundCount()
+        return inventoryCheckRepository.findActiveByApparatusId(apparatusId)
+            .map(check -> new InventoryCheckSummary(
+                check.id(),
+                check.apparatusId(),
+                check.status(),
+                check.startedAt(),
+                null, // In-progress checks don't have completedAt
+                check.progress().totalItems(),
+                check.progress().verifiedCount(),
+                check.progress().issuesFoundCount()
             ));
     }
 
@@ -205,18 +214,21 @@ public class ShiftInventoryCheckService {
     public void verifyItem(ItemVerificationRequest request, UserId performedBy) {
         stationAccess.requireInventoryCheckAccess(request.checkId());
 
-        // Validate the check exists and is in progress
-        var check = inventoryCheckQuery.findRecordById(request.checkId())
+        // Load in-progress check from repository
+        var inProgressCheck = inventoryCheckRepository.findInProgressById(request.checkId())
             .orElseThrow(() -> new IllegalArgumentException("Inventory check not found: " + request.checkId()));
 
-        if (check.getStatus() != CheckStatus.IN_PROGRESS) {
-            throw new IllegalArgumentException("Cannot verify items on a check that is not in progress");
-        }
-
-        // Check if already verified
-        if (inventoryCheckItemQuery.existsForItem(request.checkId(),
-                request.equipmentItemId(), request.consumableStockId())) {
-            throw new ItemAlreadyVerifiedException("This item has already been verified in this check");
+        // Check if already verified using repository
+        if (request.equipmentItemId() != null) {
+            if (inventoryCheckItemRepository.existsByCheckIdAndEquipmentItemId(
+                    request.checkId(), request.equipmentItemId())) {
+                throw new ItemAlreadyVerifiedException("This item has already been verified in this check");
+            }
+        } else if (request.consumableStockId() != null) {
+            if (inventoryCheckItemRepository.existsByCheckIdAndConsumableStockId(
+                    request.checkId(), request.consumableStockId())) {
+                throw new ItemAlreadyVerifiedException("This item has already been verified in this check");
+            }
         }
 
         // BR-05: Check for quantity discrepancy requiring notes (consumables)
@@ -237,39 +249,51 @@ public class ShiftInventoryCheckService {
         // BR-04: Create issue if needed
         IssueId issueId = null;
         if (request.requiresIssue()) {
-            issueId = createIssueForVerification(request, check, performedBy);
+            issueId = createIssueForVerification(request, inProgressCheck, performedBy);
         }
 
-        // Update equipment status if damaged or missing
+        // Update equipment status if damaged or missing (only for equipment, not consumables)
         if (request.equipmentItemId() != null) {
-            if (request.status() == VerificationStatus.MISSING) {
-                equipmentDao.updateStatus(request.equipmentItemId(), EquipmentStatus.MISSING);
-            } else if (request.status() == VerificationStatus.PRESENT_DAMAGED) {
-                equipmentDao.updateStatus(request.equipmentItemId(), EquipmentStatus.DAMAGED);
+            if (request.status() == VerificationStatus.MISSING ||
+                request.status() == VerificationStatus.PRESENT_DAMAGED) {
+                var equipmentItem = equipmentItemRepository.findById(request.equipmentItemId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                        "Equipment item not found: " + request.equipmentItemId()));
+                var newStatus = request.status() == VerificationStatus.MISSING
+                    ? EquipmentStatus.MISSING
+                    : EquipmentStatus.DAMAGED;
+                var updatedEquipment = equipmentItem.withStatus(newStatus);
+                equipmentItemRepository.save(updatedEquipment);
             }
         }
 
-        // Record the verification
-        inventoryCheckItemDao.insert(
+        // Create and save check item using domain model
+        var target = request.equipmentItemId() != null
+            ? new EquipmentCheckTarget(request.equipmentItemId())
+            : new ConsumableCheckTarget(request.consumableStockId());
+        var checkItem = new InventoryCheckItem(
+            InventoryCheckItemId.generate(),
             request.checkId(),
+            target,
             request.compartmentId(),
-            request.equipmentItemId(),
-            request.consumableStockId(),
             request.manifestEntryId(),
             request.status(),
-            request.conditionNotes(),
             request.quantityFound(),
             request.quantityExpected(),
+            request.conditionNotes(),
+            clock.instant(),
             issueId
         );
+        inventoryCheckItemRepository.save(checkItem);
 
-        // Update check counts
+        // Update check progress using domain model
         boolean hasIssue = issueId != null;
-        inventoryCheckDao.incrementCounts(request.checkId(), hasIssue);
+        var updatedCheck = inProgressCheck.withItemVerified(hasIssue, clock.instant());
+        inventoryCheckRepository.save(updatedCheck);
     }
 
     private IssueId createIssueForVerification(ItemVerificationRequest request,
-            com.example.firestock.jooq.tables.records.InventoryCheckRecord check, UserId reportedBy) {
+            InProgressCheck check, UserId reportedBy) {
 
         String title;
         IssueCategory category;
@@ -313,8 +337,8 @@ public class ShiftInventoryCheckService {
 
         OpenIssue issue = issueRepository.createIssue(
             target,
-            check.getApparatusId(),
-            check.getStationId(),
+            check.apparatusId(),
+            check.stationId(),
             title,
             description,
             severity,
@@ -341,22 +365,20 @@ public class ShiftInventoryCheckService {
     public InventoryCheckSummary completeCheck(InventoryCheckId checkId) {
         stationAccess.requireInventoryCheckAccess(checkId);
 
-        var check = inventoryCheckQuery.findRecordById(checkId)
+        var inProgressCheck = inventoryCheckRepository.findInProgressById(checkId)
             .orElseThrow(() -> new IllegalArgumentException("Inventory check not found: " + checkId));
 
-        if (check.getStatus() != CheckStatus.IN_PROGRESS) {
-            throw new IllegalArgumentException("Cannot complete a check that is not in progress");
-        }
-
-        // BR-02: Verify all items have been checked
-        int verifiedCount = inventoryCheckItemQuery.countByCheckId(checkId);
-        if (verifiedCount < check.getTotalItems()) {
+        // BR-02 validation is done inside the domain model's complete() method
+        // which validates progress.isAllVerified()
+        try {
+            var completedCheck = inProgressCheck.complete(clock.instant());
+            inventoryCheckRepository.save(completedCheck);
+        } catch (InventoryCheckException.IncompleteCheckException e) {
             throw new IncompleteCheckException(
                 String.format("Cannot complete check: only %d of %d items verified",
-                    verifiedCount, check.getTotalItems()));
+                    inProgressCheck.progress().verifiedCount(),
+                    inProgressCheck.progress().totalItems()));
         }
-
-        inventoryCheckDao.markCompleted(checkId);
 
         return inventoryCheckQuery.findById(checkId)
             .orElseThrow(() -> new IllegalStateException("Failed to retrieve completed check"));
@@ -372,14 +394,11 @@ public class ShiftInventoryCheckService {
     public void abandonCheck(InventoryCheckId checkId) {
         stationAccess.requireInventoryCheckAccess(checkId);
 
-        var check = inventoryCheckQuery.findRecordById(checkId)
+        var inProgressCheck = inventoryCheckRepository.findInProgressById(checkId)
             .orElseThrow(() -> new IllegalArgumentException("Inventory check not found: " + checkId));
 
-        if (check.getStatus() != CheckStatus.IN_PROGRESS) {
-            throw new IllegalArgumentException("Cannot abandon a check that is not in progress");
-        }
-
-        inventoryCheckDao.markAbandoned(checkId);
+        var abandonedCheck = inProgressCheck.abandon(null, clock.instant());
+        inventoryCheckRepository.save(abandonedCheck);
     }
 
     /**
