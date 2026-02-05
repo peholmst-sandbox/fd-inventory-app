@@ -10,6 +10,9 @@ import com.example.firestock.domain.issue.EquipmentIssueTarget;
 import com.example.firestock.domain.issue.IssueTarget;
 import com.example.firestock.domain.issue.OpenIssue;
 import com.example.firestock.domain.primitives.ids.ApparatusId;
+import com.example.firestock.domain.primitives.ids.CompartmentId;
+import com.example.firestock.domain.primitives.ids.ConsumableStockId;
+import com.example.firestock.domain.primitives.ids.EquipmentItemId;
 import com.example.firestock.domain.primitives.ids.InventoryCheckId;
 import com.example.firestock.domain.primitives.ids.InventoryCheckItemId;
 import com.example.firestock.domain.primitives.ids.IssueId;
@@ -26,14 +29,24 @@ import com.example.firestock.jooq.enums.IssueCategory;
 import com.example.firestock.jooq.enums.IssueSeverity;
 import com.example.firestock.jooq.enums.VerificationStatus;
 import com.example.firestock.security.StationAccessEvaluator;
+import com.example.firestock.security.UserDisplayNameService;
+import com.example.firestock.views.inventorycheck.broadcast.InventoryCheckBroadcaster;
+import com.example.firestock.views.inventorycheck.broadcast.InventoryCheckBroadcaster.CheckCompletedEvent;
+import com.example.firestock.views.inventorycheck.broadcast.InventoryCheckBroadcaster.CheckTakeOverEvent;
+import com.example.firestock.views.inventorycheck.broadcast.InventoryCheckBroadcaster.CompartmentLockChangedEvent;
+import com.example.firestock.views.inventorycheck.broadcast.InventoryCheckBroadcaster.ItemVerifiedEvent;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
-
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Service for UC-01: Shift Inventory Check.
@@ -65,6 +78,9 @@ public class ShiftInventoryCheckService {
     private final EquipmentItemRepository equipmentItemRepository;
     private final IssueRepository issueRepository;
     private final StationAccessEvaluator stationAccess;
+    private final CompartmentLockService compartmentLockService;
+    private final UserDisplayNameService userDisplayNameService;
+    private final InventoryCheckBroadcaster broadcaster;
     private final Clock clock;
 
     public ShiftInventoryCheckService(
@@ -76,6 +92,9 @@ public class ShiftInventoryCheckService {
             EquipmentItemRepository equipmentItemRepository,
             IssueRepository issueRepository,
             StationAccessEvaluator stationAccess,
+            CompartmentLockService compartmentLockService,
+            UserDisplayNameService userDisplayNameService,
+            InventoryCheckBroadcaster broadcaster,
             Clock clock) {
         this.apparatusQuery = apparatusQuery;
         this.inventoryCheckQuery = inventoryCheckQuery;
@@ -85,6 +104,9 @@ public class ShiftInventoryCheckService {
         this.equipmentItemRepository = equipmentItemRepository;
         this.issueRepository = issueRepository;
         this.stationAccess = stationAccess;
+        this.compartmentLockService = compartmentLockService;
+        this.userDisplayNameService = userDisplayNameService;
+        this.broadcaster = broadcaster;
         this.clock = clock;
     }
 
@@ -290,6 +312,19 @@ public class ShiftInventoryCheckService {
         boolean hasIssue = issueId != null;
         var updatedCheck = inProgressCheck.withItemVerified(hasIssue, clock.instant());
         inventoryCheckRepository.save(updatedCheck);
+
+        // Broadcast ItemVerifiedEvent for real-time updates
+        String itemId = request.equipmentItemId() != null
+            ? request.equipmentItemId().toString()
+            : request.consumableStockId().toString();
+        String verifiedByName = userDisplayNameService.getDisplayName(performedBy).orElse("Unknown");
+        broadcaster.broadcast(new ItemVerifiedEvent(
+            inProgressCheck.apparatusId(),
+            request.compartmentId(),
+            itemId,
+            request.status(),
+            verifiedByName
+        ));
     }
 
     private IssueId createIssueForVerification(ItemVerificationRequest request,
@@ -380,6 +415,15 @@ public class ShiftInventoryCheckService {
                     inProgressCheck.progress().totalItems()));
         }
 
+        // Clear all compartment locks for this check
+        compartmentLockService.clearLocksForCheck(checkId);
+
+        // Broadcast CheckCompletedEvent for real-time updates
+        broadcaster.broadcast(new CheckCompletedEvent(
+            inProgressCheck.apparatusId(),
+            checkId
+        ));
+
         return inventoryCheckQuery.findById(checkId)
             .orElseThrow(() -> new IllegalStateException("Failed to retrieve completed check"));
     }
@@ -399,6 +443,9 @@ public class ShiftInventoryCheckService {
 
         var abandonedCheck = inProgressCheck.abandon(null, clock.instant());
         inventoryCheckRepository.save(abandonedCheck);
+
+        // Clear all compartment locks for this check
+        compartmentLockService.clearLocksForCheck(checkId);
     }
 
     /**
@@ -413,6 +460,337 @@ public class ShiftInventoryCheckService {
     public Optional<CheckableItem> findByBarcode(Barcode barcode, ApparatusId apparatusId) {
         stationAccess.requireApparatusAccess(apparatusId);
         return equipmentQuery.findByBarcode(barcode, apparatusId);
+    }
+
+    // ==================== New UX Methods ====================
+
+    /**
+     * Gets all apparatus for a station with their current check status.
+     * Includes display names of users currently checking each apparatus.
+     *
+     * @param stationId the station to get apparatus for
+     * @return list of apparatus with check status and current checker names
+     */
+    @Transactional(readOnly = true)
+    @PreAuthorize("@stationAccess.canAccessStation(#stationId)")
+    public List<ApparatusWithCheckStatus> getApparatusWithCheckStatus(StationId stationId) {
+        var apparatusRecords = apparatusQuery.findByStationIdWithActiveChecks(stationId);
+        List<ApparatusWithCheckStatus> result = new ArrayList<>();
+
+        for (var record : apparatusRecords) {
+            List<String> checkerNames = new ArrayList<>();
+
+            if (record.hasActiveCheck()) {
+                // Get all users with locks on compartments for this check
+                var locks = compartmentLockService.getLocksForCheck(record.activeCheckId());
+                if (!locks.isEmpty()) {
+                    Set<UserId> lockedUserIds = locks.values().stream().collect(Collectors.toSet());
+                    var names = userDisplayNameService.getDisplayNames(lockedUserIds);
+                    checkerNames.addAll(names.values());
+                }
+            }
+
+            result.add(new ApparatusWithCheckStatus(
+                record.id(),
+                record.unitNumber(),
+                record.stationName(),
+                record.lastCheckDate(),
+                record.hasActiveCheck(),
+                checkerNames
+            ));
+        }
+
+        return result;
+    }
+
+    /**
+     * Gets any active check for the station (for resume banner).
+     *
+     * @param stationId the station to check
+     * @return the active check info, or empty if no active checks
+     */
+    @Transactional(readOnly = true)
+    @PreAuthorize("@stationAccess.canAccessStation(#stationId)")
+    public Optional<ActiveCheckInfo> getActiveCheckForStation(StationId stationId) {
+        return inventoryCheckQuery.findActiveCheckForStation(stationId);
+    }
+
+    /**
+     * Gets compartment progress for an active check.
+     * Shows how many items are verified in each compartment.
+     * Includes display names of current checkers (looked up from user table).
+     *
+     * @param checkId the inventory check ID
+     * @return list of compartment progress records
+     */
+    @Transactional(readOnly = true)
+    public List<CompartmentCheckProgress> getCompartmentProgress(InventoryCheckId checkId) {
+        stationAccess.requireInventoryCheckAccess(checkId);
+
+        // Get the check to find the apparatus
+        var checkSummary = inventoryCheckQuery.findById(checkId)
+            .orElseThrow(() -> new IllegalArgumentException("Inventory check not found: " + checkId));
+
+        // Get apparatus details for compartments
+        var apparatus = apparatusQuery.findByIdWithCompartmentsAndItems(checkSummary.apparatusId())
+            .orElseThrow(() -> new IllegalArgumentException("Apparatus not found: " + checkSummary.apparatusId()));
+
+        // Get verified counts per compartment
+        var verifiedCounts = inventoryCheckQuery.countVerifiedItemsByCompartment(checkId);
+
+        // Get current locks for this check
+        var locks = compartmentLockService.getLocksForCheck(checkId);
+
+        // Get display names for all locked users
+        Map<UserId, String> userNames = new HashMap<>();
+        if (!locks.isEmpty()) {
+            Set<UserId> userIds = locks.values().stream().collect(Collectors.toSet());
+            userNames = userDisplayNameService.getDisplayNames(userIds);
+        }
+
+        List<CompartmentCheckProgress> progress = new ArrayList<>();
+        for (var compartment : apparatus.compartments()) {
+            int totalItems = compartment.items().size();
+            int verifiedCount = verifiedCounts.getOrDefault(compartment.id(), 0);
+            boolean isFullyChecked = verifiedCount >= totalItems;
+
+            // Check if someone is currently checking this compartment
+            String currentCheckerName = null;
+            UserId lockedBy = locks.get(compartment.id());
+            if (lockedBy != null) {
+                currentCheckerName = userNames.get(lockedBy);
+            }
+
+            progress.add(new CompartmentCheckProgress(
+                compartment.id(),
+                compartment.code(),
+                compartment.name(),
+                compartment.displayOrder(),
+                totalItems,
+                verifiedCount,
+                isFullyChecked,
+                currentCheckerName
+            ));
+        }
+
+        return progress;
+    }
+
+    /**
+     * Gets items in a compartment with their verification status for the current check.
+     * Items are sorted: unchecked first, then checked (by verification time).
+     * Includes verifier display names (looked up from user table).
+     *
+     * @param checkId the inventory check ID
+     * @param compartmentId the compartment to get items for
+     * @return list of items with their verification status
+     */
+    @Transactional(readOnly = true)
+    public List<CheckableItemWithStatus> getItemsWithStatus(
+            InventoryCheckId checkId, CompartmentId compartmentId) {
+        stationAccess.requireInventoryCheckAccess(checkId);
+
+        // Get the check to find the apparatus
+        var checkSummary = inventoryCheckQuery.findById(checkId)
+            .orElseThrow(() -> new IllegalArgumentException("Inventory check not found: " + checkId));
+
+        // Get apparatus details to get all items in the compartment
+        var apparatus = apparatusQuery.findByIdWithCompartmentsAndItems(checkSummary.apparatusId())
+            .orElseThrow(() -> new IllegalArgumentException("Apparatus not found: " + checkSummary.apparatusId()));
+
+        // Find the compartment
+        var compartment = apparatus.compartments().stream()
+            .filter(c -> c.id().equals(compartmentId))
+            .findFirst()
+            .orElseThrow(() -> new IllegalArgumentException("Compartment not found: " + compartmentId));
+
+        // Get verification records for this compartment
+        var verificationRecords = inventoryCheckQuery.findVerifiedItemsInCompartment(checkId, compartmentId);
+
+        // Build lookup maps for verification status
+        Map<EquipmentItemId, ItemVerificationRecord> equipmentVerifications = new HashMap<>();
+        Map<ConsumableStockId, ItemVerificationRecord> consumableVerifications = new HashMap<>();
+        Set<UserId> verifierIds = verificationRecords.stream()
+            .map(ItemVerificationRecord::verifiedBy)
+            .filter(id -> id != null)
+            .collect(Collectors.toSet());
+
+        for (var record : verificationRecords) {
+            if (record.target().isEquipment()) {
+                var equipmentTarget = (EquipmentCheckTarget) record.target();
+                equipmentVerifications.put(equipmentTarget.equipmentItemId(), record);
+            } else {
+                var consumableTarget = (ConsumableCheckTarget) record.target();
+                consumableVerifications.put(consumableTarget.consumableStockId(), record);
+            }
+        }
+
+        // Get display names for verifiers
+        Map<UserId, String> verifierNames = userDisplayNameService.getDisplayNames(verifierIds);
+
+        // Build result list
+        List<CheckableItemWithStatus> unchecked = new ArrayList<>();
+        List<CheckableItemWithStatus> checked = new ArrayList<>();
+
+        for (var item : compartment.items()) {
+            ItemVerificationRecord verification = null;
+            if (item.equipmentItemId() != null) {
+                verification = equipmentVerifications.get(item.equipmentItemId());
+            } else if (item.consumableStockId() != null) {
+                verification = consumableVerifications.get(item.consumableStockId());
+            }
+
+            String verifierName = null;
+            if (verification != null && verification.verifiedBy() != null) {
+                verifierName = verifierNames.get(verification.verifiedBy());
+            }
+
+            var itemWithStatus = new CheckableItemWithStatus(
+                item,
+                verification != null ? verification.status() : null,
+                verification != null ? verification.verifiedAt() : null,
+                verifierName
+            );
+
+            if (verification == null) {
+                unchecked.add(itemWithStatus);
+            } else {
+                checked.add(itemWithStatus);
+            }
+        }
+
+        // Sort checked items by verification time
+        checked.sort((a, b) -> {
+            if (a.verifiedAt() == null) return 1;
+            if (b.verifiedAt() == null) return -1;
+            return a.verifiedAt().compareTo(b.verifiedAt());
+        });
+
+        // Combine: unchecked first, then checked
+        List<CheckableItemWithStatus> result = new ArrayList<>(unchecked);
+        result.addAll(checked);
+        return result;
+    }
+
+    /**
+     * Starts checking a compartment (acquires lock).
+     *
+     * @param checkId the inventory check ID
+     * @param compartmentId the compartment to start checking
+     * @param userId the user acquiring the lock
+     * @throws CompartmentLockedException if another user is checking (includes their display name)
+     */
+    public void startCheckingCompartment(InventoryCheckId checkId, CompartmentId compartmentId, UserId userId) {
+        stationAccess.requireInventoryCheckAccess(checkId);
+
+        boolean acquired = compartmentLockService.acquireLock(checkId, compartmentId, userId);
+        if (!acquired) {
+            // Get the name of who has it locked
+            var lock = compartmentLockService.getLock(checkId, compartmentId);
+            String lockedByName = lock
+                .map(l -> userDisplayNameService.getDisplayName(l.userId()).orElse("Another user"))
+                .orElse("Another user");
+            throw new CompartmentLockedException(lockedByName);
+        }
+
+        // Broadcast CompartmentLockChangedEvent for real-time updates
+        var checkSummary = inventoryCheckQuery.findById(checkId);
+        if (checkSummary.isPresent()) {
+            String lockedByName = userDisplayNameService.getDisplayName(userId).orElse("Unknown");
+            broadcaster.broadcast(new CompartmentLockChangedEvent(
+                checkSummary.get().apparatusId(),
+                compartmentId,
+                lockedByName,
+                true
+            ));
+        }
+    }
+
+    /**
+     * Stops checking a compartment (releases lock).
+     *
+     * @param checkId the inventory check ID
+     * @param compartmentId the compartment to stop checking
+     * @param userId the user releasing the lock
+     */
+    public void stopCheckingCompartment(InventoryCheckId checkId, CompartmentId compartmentId, UserId userId) {
+        // No need for access check here - we just release if the user has the lock
+        compartmentLockService.releaseLock(checkId, compartmentId, userId);
+
+        // Broadcast CompartmentLockChangedEvent for real-time updates
+        var checkSummary = inventoryCheckQuery.findById(checkId);
+        if (checkSummary.isPresent()) {
+            broadcaster.broadcast(new CompartmentLockChangedEvent(
+                checkSummary.get().apparatusId(),
+                compartmentId,
+                null,
+                false
+            ));
+        }
+    }
+
+    /**
+     * Takes over a compartment from another user.
+     *
+     * @param checkId the inventory check ID
+     * @param compartmentId the compartment to take over
+     * @param newUserId the user taking over
+     * @return the previous checker's display name (for notification), or null if wasn't locked
+     */
+    public String takeOverCompartment(InventoryCheckId checkId, CompartmentId compartmentId, UserId newUserId) {
+        stationAccess.requireInventoryCheckAccess(checkId);
+
+        Optional<UserId> previousUserId = compartmentLockService.takeOver(checkId, compartmentId, newUserId);
+        String previousCheckerName = previousUserId
+            .flatMap(userDisplayNameService::getDisplayName)
+            .orElse(null);
+
+        // Broadcast CheckTakeOverEvent for real-time updates
+        var checkSummary = inventoryCheckQuery.findById(checkId);
+        if (checkSummary.isPresent() && previousCheckerName != null) {
+            String newCheckerName = userDisplayNameService.getDisplayName(newUserId).orElse("Unknown");
+            broadcaster.broadcast(new CheckTakeOverEvent(
+                checkSummary.get().apparatusId(),
+                compartmentId,
+                previousCheckerName,
+                newCheckerName
+            ));
+        }
+
+        return previousCheckerName;
+    }
+
+    /**
+     * Gets who is currently checking a compartment.
+     *
+     * @param checkId the inventory check ID
+     * @param compartmentId the compartment to check
+     * @return the checker's display name, or empty if not being checked
+     */
+    @Transactional(readOnly = true)
+    public Optional<String> getCompartmentCheckerName(InventoryCheckId checkId, CompartmentId compartmentId) {
+        stationAccess.requireInventoryCheckAccess(checkId);
+
+        return compartmentLockService.getLock(checkId, compartmentId)
+            .flatMap(lock -> userDisplayNameService.getDisplayName(lock.userId()));
+    }
+
+    // ==================== Exceptions ====================
+
+    /**
+     * Exception thrown when trying to check a compartment that's locked by another user.
+     */
+    public static class CompartmentLockedException extends RuntimeException {
+        private final String lockedByName;
+
+        public CompartmentLockedException(String lockedByName) {
+            super("Compartment is being checked by " + lockedByName);
+            this.lockedByName = lockedByName;
+        }
+
+        public String getLockedByName() {
+            return lockedByName;
+        }
     }
 
     /**

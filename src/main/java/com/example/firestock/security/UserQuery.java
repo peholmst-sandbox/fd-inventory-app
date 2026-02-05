@@ -6,7 +6,10 @@ import com.example.firestock.domain.primitives.strings.EmailAddress;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Component;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -90,5 +93,38 @@ class UserQuery {
                 .from(APP_USER)
                 .where(APP_USER.EMAIL.eq(email))
         );
+    }
+
+    /**
+     * Gets the display name for a single user ID.
+     * Display name is the full name (first + last name).
+     *
+     * @param userId the user ID to look up
+     * @return the display name, or empty if user not found
+     */
+    Optional<String> getDisplayName(UserId userId) {
+        return create.select(APP_USER.FIRST_NAME, APP_USER.LAST_NAME)
+            .from(APP_USER)
+            .where(APP_USER.ID.eq(userId))
+            .fetchOptional(r -> r.value1() + " " + r.value2());
+    }
+
+    /**
+     * Gets display names for a collection of user IDs.
+     * Display name is the full name (first + last name).
+     *
+     * @param userIds the user IDs to look up
+     * @return a map of UserId to display name (users not found are omitted)
+     */
+    Map<UserId, String> getDisplayNames(Collection<UserId> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<UserId, String> result = new HashMap<>();
+        create.select(APP_USER.ID, APP_USER.FIRST_NAME, APP_USER.LAST_NAME)
+            .from(APP_USER)
+            .where(APP_USER.ID.in(userIds))
+            .forEach(r -> result.put(r.value1(), r.value2() + " " + r.value3()));
+        return result;
     }
 }
