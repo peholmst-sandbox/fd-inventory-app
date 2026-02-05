@@ -10,6 +10,11 @@ import com.example.firestock.inventorycheck.ShiftInventoryCheckService;
 import com.example.firestock.jooq.enums.VerificationStatus;
 import com.example.firestock.security.FirestockUserDetails;
 import com.example.firestock.views.MainLayout;
+import com.example.firestock.views.inventorycheck.broadcast.InventoryCheckBroadcaster;
+import com.example.firestock.views.inventorycheck.broadcast.InventoryCheckBroadcaster.CheckCompletedEvent;
+import com.example.firestock.views.inventorycheck.broadcast.InventoryCheckBroadcaster.CheckTakeOverEvent;
+import com.example.firestock.views.inventorycheck.broadcast.InventoryCheckBroadcaster.InventoryCheckEvent;
+import com.example.firestock.views.inventorycheck.broadcast.InventoryCheckBroadcaster.ItemVerifiedEvent;
 import com.example.firestock.views.inventorycheck.components.CheckProgressBar;
 import com.example.firestock.views.inventorycheck.components.ConsumableItemCard;
 import com.example.firestock.views.inventorycheck.components.EquipmentItemCard;
@@ -25,6 +30,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParam;
 import com.vaadin.flow.router.RouteParameters;
+import com.vaadin.flow.shared.Registration;
 import jakarta.annotation.security.PermitAll;
 
 import java.math.BigDecimal;
@@ -50,6 +56,9 @@ import java.math.BigDecimal;
 @PermitAll
 public class CheckCompartmentView extends AbstractCheckCompartmentView {
 
+    private final InventoryCheckBroadcaster broadcaster;
+    private Registration broadcasterRegistration;
+
     // ==================== Static Navigation Helpers ====================
 
     /**
@@ -68,8 +77,10 @@ public class CheckCompartmentView extends AbstractCheckCompartmentView {
 
     // ==================== Constructor ====================
 
-    public CheckCompartmentView(ShiftInventoryCheckService inventoryCheckService) {
+    public CheckCompartmentView(ShiftInventoryCheckService inventoryCheckService,
+                                InventoryCheckBroadcaster broadcaster) {
         super(inventoryCheckService);
+        this.broadcaster = broadcaster;
     }
 
     // ==================== Lifecycle ====================
@@ -77,7 +88,13 @@ public class CheckCompartmentView extends AbstractCheckCompartmentView {
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
-        // TODO: Register with broadcaster for real-time updates (Step 7)
+        // Register with broadcaster for real-time updates
+        if (apparatusDetails != null) {
+            UI ui = attachEvent.getUI();
+            broadcasterRegistration = broadcaster.register(apparatusDetails.id(), event -> {
+                ui.access(() -> handleBroadcastEvent(event));
+            });
+        }
     }
 
     @Override
@@ -88,7 +105,11 @@ public class CheckCompartmentView extends AbstractCheckCompartmentView {
             FirestockUserDetails user = getCurrentUser();
             inventoryCheckService.stopCheckingCompartment(checkId, compartmentId, user.getUserId());
         }
-        // TODO: Unregister from broadcaster (Step 7)
+        // Unregister from broadcaster
+        if (broadcasterRegistration != null) {
+            broadcasterRegistration.remove();
+            broadcasterRegistration = null;
+        }
     }
 
     // ==================== Template Method Implementations ====================
@@ -242,6 +263,40 @@ public class CheckCompartmentView extends AbstractCheckCompartmentView {
         if (card != null && itemList != null) {
             itemList.remove(card);
             itemList.add(card);
+        }
+    }
+
+    // ==================== Real-time Event Handling ====================
+
+    private void handleBroadcastEvent(InventoryCheckEvent event) {
+        if (event instanceof ItemVerifiedEvent itemEvent) {
+            // Only handle events for our compartment
+            if (itemEvent.compartmentId().equals(compartmentId)) {
+                // Reload content to reflect the update
+                loadContent();
+            }
+        } else if (event instanceof CheckTakeOverEvent takeOverEvent) {
+            // Check if we were taken over
+            if (takeOverEvent.compartmentId().equals(compartmentId)) {
+                FirestockUserDetails currentUser = getCurrentUser();
+                String currentUserName = currentUser.getFirstName() + " " + currentUser.getLastName();
+
+                // If the previous checker is us, notify and redirect
+                if (takeOverEvent.previousCheckerName().equals(currentUserName)) {
+                    Notification.show(
+                        takeOverEvent.newCheckerName() + " has taken over this compartment",
+                        5000, Notification.Position.MIDDLE
+                    ).addThemeVariants(NotificationVariant.LUMO_WARNING);
+
+                    // Navigate to read-only view
+                    CheckCompartmentReadOnlyView.showView(checkId, compartmentId);
+                }
+            }
+        } else if (event instanceof CheckCompletedEvent completedEvent) {
+            // Check was completed, navigate back to apparatus selection
+            Notification.show("Inventory check completed", 3000, Notification.Position.BOTTOM_CENTER)
+                .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+            navigateToSelectApparatus();
         }
     }
 }

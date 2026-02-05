@@ -7,6 +7,11 @@ import com.example.firestock.inventorycheck.CheckableItemWithStatus;
 import com.example.firestock.inventorycheck.ShiftInventoryCheckService;
 import com.example.firestock.security.FirestockUserDetails;
 import com.example.firestock.views.MainLayout;
+import com.example.firestock.views.inventorycheck.broadcast.InventoryCheckBroadcaster;
+import com.example.firestock.views.inventorycheck.broadcast.InventoryCheckBroadcaster.CheckCompletedEvent;
+import com.example.firestock.views.inventorycheck.broadcast.InventoryCheckBroadcaster.CompartmentLockChangedEvent;
+import com.example.firestock.views.inventorycheck.broadcast.InventoryCheckBroadcaster.InventoryCheckEvent;
+import com.example.firestock.views.inventorycheck.broadcast.InventoryCheckBroadcaster.ItemVerifiedEvent;
 import com.example.firestock.views.inventorycheck.dialogs.ConfirmTakeOverDialog;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
@@ -23,6 +28,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParam;
 import com.vaadin.flow.router.RouteParameters;
+import com.vaadin.flow.shared.Registration;
 import jakarta.annotation.security.PermitAll;
 
 import java.math.BigDecimal;
@@ -48,6 +54,8 @@ import java.math.BigDecimal;
 @PermitAll
 public class CheckCompartmentReadOnlyView extends AbstractCheckCompartmentView {
 
+    private final InventoryCheckBroadcaster broadcaster;
+    private Registration broadcasterRegistration;
     private String currentCheckerName;
     private Span warningText;
 
@@ -69,8 +77,10 @@ public class CheckCompartmentReadOnlyView extends AbstractCheckCompartmentView {
 
     // ==================== Constructor ====================
 
-    public CheckCompartmentReadOnlyView(ShiftInventoryCheckService inventoryCheckService) {
+    public CheckCompartmentReadOnlyView(ShiftInventoryCheckService inventoryCheckService,
+                                        InventoryCheckBroadcaster broadcaster) {
         super(inventoryCheckService);
+        this.broadcaster = broadcaster;
     }
 
     // ==================== Lifecycle ====================
@@ -78,20 +88,23 @@ public class CheckCompartmentReadOnlyView extends AbstractCheckCompartmentView {
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
-        // TODO: Register with broadcaster for real-time updates (Step 7)
-        // UI ui = attachEvent.getUI();
-        // registration = broadcaster.register(apparatusId, e -> {
-        //     ui.access(() -> handleBroadcastEvent(e));
-        // });
+        // Register with broadcaster for real-time updates
+        if (apparatusDetails != null) {
+            UI ui = attachEvent.getUI();
+            broadcasterRegistration = broadcaster.register(apparatusDetails.id(), event -> {
+                ui.access(() -> handleBroadcastEvent(event));
+            });
+        }
     }
 
     @Override
     protected void onDetach(DetachEvent detachEvent) {
         super.onDetach(detachEvent);
-        // TODO: Unregister from broadcaster (Step 7)
-        // if (registration != null) {
-        //     registration.remove();
-        // }
+        // Unregister from broadcaster
+        if (broadcasterRegistration != null) {
+            broadcasterRegistration.remove();
+            broadcasterRegistration = null;
+        }
     }
 
     // ==================== Template Method Implementations ====================
@@ -238,7 +251,7 @@ public class CheckCompartmentReadOnlyView extends AbstractCheckCompartmentView {
         FirestockUserDetails user = getCurrentUser();
 
         try {
-            // Take over the compartment
+            // Take over the compartment (service broadcasts CheckTakeOverEvent)
             String previousChecker = inventoryCheckService.takeOverCompartment(checkId, compartmentId, user.getUserId());
 
             // Show notification
@@ -246,8 +259,6 @@ public class CheckCompartmentReadOnlyView extends AbstractCheckCompartmentView {
                 Notification.show("Took over from " + previousChecker, 3000, Notification.Position.BOTTOM_CENTER)
                     .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
             }
-
-            // TODO: Broadcast CheckTakeOverEvent to notify previous checker (Step 7)
 
             // Navigate to editable Check Compartment view
             CheckCompartmentView.showView(checkId, compartmentId);
@@ -260,24 +271,33 @@ public class CheckCompartmentReadOnlyView extends AbstractCheckCompartmentView {
 
     // ==================== Real-time Update Handling ====================
 
-    // TODO: Enable when broadcaster is implemented (Step 7)
-    // private void handleBroadcastEvent(InventoryCheckEvent event) {
-    //     if (event instanceof ItemVerifiedEvent itemEvent) {
-    //         if (itemEvent.compartmentId().equals(compartmentId)) {
-    //             // Reload content to reflect the update
-    //             loadContent();
-    //         }
-    //     } else if (event instanceof CompartmentLockChangedEvent lockEvent) {
-    //         if (lockEvent.compartmentId().equals(compartmentId)) {
-    //             if (!lockEvent.isLocked()) {
-    //                 // Compartment was unlocked - the other user left
-    //                 Notification.show("Compartment is now available", 3000, Notification.Position.BOTTOM_CENTER);
-    //             } else {
-    //                 // Update checker name
-    //                 currentCheckerName = lockEvent.lockedByName();
-    //                 warningText.setText("This compartment is being checked by " + currentCheckerName);
-    //             }
-    //         }
-    //     }
-    // }
+    private void handleBroadcastEvent(InventoryCheckEvent event) {
+        if (event instanceof ItemVerifiedEvent itemEvent) {
+            if (itemEvent.compartmentId().equals(compartmentId)) {
+                // Reload content to reflect the update
+                loadContent();
+            }
+        } else if (event instanceof CompartmentLockChangedEvent lockEvent) {
+            if (lockEvent.compartmentId().equals(compartmentId)) {
+                if (!lockEvent.isLocked()) {
+                    // Compartment was unlocked - the other user left
+                    Notification.show("Compartment is now available", 3000, Notification.Position.BOTTOM_CENTER)
+                        .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                    // Navigate to editable view since we can now check it
+                    CheckCompartmentView.showView(checkId, compartmentId);
+                } else {
+                    // Update checker name
+                    currentCheckerName = lockEvent.lockedByName();
+                    if (warningText != null) {
+                        warningText.setText("This compartment is being checked by " + currentCheckerName);
+                    }
+                }
+            }
+        } else if (event instanceof CheckCompletedEvent) {
+            // Check was completed, navigate back to apparatus selection
+            Notification.show("Inventory check completed", 3000, Notification.Position.BOTTOM_CENTER)
+                .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+            navigateToSelectApparatus();
+        }
+    }
 }

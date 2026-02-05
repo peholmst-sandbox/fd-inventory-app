@@ -30,6 +30,11 @@ import com.example.firestock.jooq.enums.IssueSeverity;
 import com.example.firestock.jooq.enums.VerificationStatus;
 import com.example.firestock.security.StationAccessEvaluator;
 import com.example.firestock.security.UserDisplayNameService;
+import com.example.firestock.views.inventorycheck.broadcast.InventoryCheckBroadcaster;
+import com.example.firestock.views.inventorycheck.broadcast.InventoryCheckBroadcaster.CheckCompletedEvent;
+import com.example.firestock.views.inventorycheck.broadcast.InventoryCheckBroadcaster.CheckTakeOverEvent;
+import com.example.firestock.views.inventorycheck.broadcast.InventoryCheckBroadcaster.CompartmentLockChangedEvent;
+import com.example.firestock.views.inventorycheck.broadcast.InventoryCheckBroadcaster.ItemVerifiedEvent;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -75,6 +80,7 @@ public class ShiftInventoryCheckService {
     private final StationAccessEvaluator stationAccess;
     private final CompartmentLockService compartmentLockService;
     private final UserDisplayNameService userDisplayNameService;
+    private final InventoryCheckBroadcaster broadcaster;
     private final Clock clock;
 
     public ShiftInventoryCheckService(
@@ -88,6 +94,7 @@ public class ShiftInventoryCheckService {
             StationAccessEvaluator stationAccess,
             CompartmentLockService compartmentLockService,
             UserDisplayNameService userDisplayNameService,
+            InventoryCheckBroadcaster broadcaster,
             Clock clock) {
         this.apparatusQuery = apparatusQuery;
         this.inventoryCheckQuery = inventoryCheckQuery;
@@ -99,6 +106,7 @@ public class ShiftInventoryCheckService {
         this.stationAccess = stationAccess;
         this.compartmentLockService = compartmentLockService;
         this.userDisplayNameService = userDisplayNameService;
+        this.broadcaster = broadcaster;
         this.clock = clock;
     }
 
@@ -304,6 +312,19 @@ public class ShiftInventoryCheckService {
         boolean hasIssue = issueId != null;
         var updatedCheck = inProgressCheck.withItemVerified(hasIssue, clock.instant());
         inventoryCheckRepository.save(updatedCheck);
+
+        // Broadcast ItemVerifiedEvent for real-time updates
+        String itemId = request.equipmentItemId() != null
+            ? request.equipmentItemId().toString()
+            : request.consumableStockId().toString();
+        String verifiedByName = userDisplayNameService.getDisplayName(performedBy).orElse("Unknown");
+        broadcaster.broadcast(new ItemVerifiedEvent(
+            inProgressCheck.apparatusId(),
+            request.compartmentId(),
+            itemId,
+            request.status(),
+            verifiedByName
+        ));
     }
 
     private IssueId createIssueForVerification(ItemVerificationRequest request,
@@ -396,6 +417,12 @@ public class ShiftInventoryCheckService {
 
         // Clear all compartment locks for this check
         compartmentLockService.clearLocksForCheck(checkId);
+
+        // Broadcast CheckCompletedEvent for real-time updates
+        broadcaster.broadcast(new CheckCompletedEvent(
+            inProgressCheck.apparatusId(),
+            checkId
+        ));
 
         return inventoryCheckQuery.findById(checkId)
             .orElseThrow(() -> new IllegalStateException("Failed to retrieve completed check"));
@@ -665,6 +692,18 @@ public class ShiftInventoryCheckService {
                 .orElse("Another user");
             throw new CompartmentLockedException(lockedByName);
         }
+
+        // Broadcast CompartmentLockChangedEvent for real-time updates
+        var checkSummary = inventoryCheckQuery.findById(checkId);
+        if (checkSummary.isPresent()) {
+            String lockedByName = userDisplayNameService.getDisplayName(userId).orElse("Unknown");
+            broadcaster.broadcast(new CompartmentLockChangedEvent(
+                checkSummary.get().apparatusId(),
+                compartmentId,
+                lockedByName,
+                true
+            ));
+        }
     }
 
     /**
@@ -677,6 +716,17 @@ public class ShiftInventoryCheckService {
     public void stopCheckingCompartment(InventoryCheckId checkId, CompartmentId compartmentId, UserId userId) {
         // No need for access check here - we just release if the user has the lock
         compartmentLockService.releaseLock(checkId, compartmentId, userId);
+
+        // Broadcast CompartmentLockChangedEvent for real-time updates
+        var checkSummary = inventoryCheckQuery.findById(checkId);
+        if (checkSummary.isPresent()) {
+            broadcaster.broadcast(new CompartmentLockChangedEvent(
+                checkSummary.get().apparatusId(),
+                compartmentId,
+                null,
+                false
+            ));
+        }
     }
 
     /**
@@ -691,9 +741,23 @@ public class ShiftInventoryCheckService {
         stationAccess.requireInventoryCheckAccess(checkId);
 
         Optional<UserId> previousUserId = compartmentLockService.takeOver(checkId, compartmentId, newUserId);
-        return previousUserId
+        String previousCheckerName = previousUserId
             .flatMap(userDisplayNameService::getDisplayName)
             .orElse(null);
+
+        // Broadcast CheckTakeOverEvent for real-time updates
+        var checkSummary = inventoryCheckQuery.findById(checkId);
+        if (checkSummary.isPresent() && previousCheckerName != null) {
+            String newCheckerName = userDisplayNameService.getDisplayName(newUserId).orElse("Unknown");
+            broadcaster.broadcast(new CheckTakeOverEvent(
+                checkSummary.get().apparatusId(),
+                compartmentId,
+                previousCheckerName,
+                newCheckerName
+            ));
+        }
+
+        return previousCheckerName;
     }
 
     /**
