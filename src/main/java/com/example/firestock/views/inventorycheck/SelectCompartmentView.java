@@ -278,17 +278,17 @@ public class SelectCompartmentView extends Div implements BeforeEnterObserver {
     }
 
     private void navigateToCheckCompartment(CompartmentId compartmentId, boolean readOnly) {
-        // Navigate to Step 4: Check Compartment View (or read-only variant)
-        // TODO: When CheckCompartmentView is created, use its static navigation helper:
-        // CheckCompartmentView.showView(checkId, compartmentId) or
-        // CheckCompartmentReadOnlyView.showView(checkId, compartmentId)
-        //
-        // Route pattern: /inventory-check/check/:checkId/compartment/:compartmentId
-        // or read-only:  /inventory-check/check/:checkId/compartment/:compartmentId/readonly
-        String baseRoute = "inventory-check/check/" + checkId.toString() +
-            "/compartment/" + compartmentId.toString();
-        String route = readOnly ? baseRoute + "/readonly" : baseRoute;
-        getUI().ifPresent(ui -> ui.navigate(route));
+        if (readOnly) {
+            // Navigate to Step 5: Check Compartment Read-Only View
+            // TODO: When CheckCompartmentReadOnlyView is created, use its static navigation helper:
+            // CheckCompartmentReadOnlyView.showView(checkId, compartmentId)
+            String route = "inventory-check/check/" + checkId.toString() +
+                "/compartment/" + compartmentId.toString() + "/readonly";
+            getUI().ifPresent(ui -> ui.navigate(route));
+        } else {
+            // Navigate to Step 4: Check Compartment View
+            CheckCompartmentView.showView(checkId, compartmentId);
+        }
     }
 
     private void navigateToSummary() {
