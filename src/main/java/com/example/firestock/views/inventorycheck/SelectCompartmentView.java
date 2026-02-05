@@ -289,12 +289,7 @@ public class SelectCompartmentView extends Div implements BeforeEnterObserver {
 
     private void navigateToSummary() {
         // Navigate to Step 6: View Summary
-        // TODO: When ViewSummaryView is created, use its static navigation helper:
-        // ViewSummaryView.showView(checkId)
-        //
-        // Route pattern: /inventory-check/check/:checkId/summary
-        String route = "inventory-check/check/" + checkId.toString() + "/summary";
-        getUI().ifPresent(ui -> ui.navigate(route));
+        ViewSummaryView.showView(checkId);
     }
 
     private FirestockUserDetails getCurrentUser() {
