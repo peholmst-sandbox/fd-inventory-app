@@ -1,5 +1,6 @@
 package com.example.firestock.views.inventorycheck;
 
+import com.example.firestock.domain.primitives.ids.ApparatusId;
 import com.example.firestock.inventorycheck.ActiveCheckInfo;
 import com.example.firestock.inventorycheck.ApparatusWithCheckStatus;
 import com.example.firestock.inventorycheck.ShiftInventoryCheckService;
@@ -112,7 +113,7 @@ public class SelectApparatusView extends Div {
         if (activeCheck.isPresent()) {
             ResumeBanner resumeBanner = new ResumeBanner(activeCheck.get());
             resumeBanner.addResumeClickListener(e ->
-                navigateToCompartmentSelection(activeCheck.get().apparatusId().toString())
+                SelectCompartmentView.showView(activeCheck.get().apparatusId())
             );
             content.add(resumeBanner);
         }
@@ -142,7 +143,7 @@ public class SelectApparatusView extends Div {
         for (ApparatusWithCheckStatus apparatus : sortedList) {
             ApparatusCard card = new ApparatusCard(apparatus);
             card.addCardClickListener(e ->
-                navigateToCompartmentSelection(apparatus.id().toString())
+                SelectCompartmentView.showView(apparatus.id())
             );
             cardList.add(card);
         }
@@ -179,14 +180,6 @@ public class SelectApparatusView extends Div {
 
     private void navigateToHome() {
         getUI().ifPresent(ui -> ui.navigate(""));
-    }
-
-    private void navigateToCompartmentSelection(String apparatusId) {
-        // Navigate to the compartment selection view (Step 3)
-        // Route: /inventory-check/apparatus/{apparatusId}/compartments
-        getUI().ifPresent(ui ->
-            ui.navigate("inventory-check/apparatus/" + apparatusId + "/compartments")
-        );
     }
 
     private FirestockUserDetails getCurrentUser() {
