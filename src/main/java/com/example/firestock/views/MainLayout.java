@@ -3,7 +3,7 @@ package com.example.firestock.views;
 import com.example.firestock.jooq.enums.UserRole;
 import com.example.firestock.security.FirestockUserDetails;
 import com.example.firestock.views.audit.AuditApparatusSelectionView;
-import com.example.firestock.views.inventorycheck.ApparatusSelectionView;
+import com.example.firestock.views.inventorycheck.SelectApparatusView;
 import com.example.firestock.views.issues.ReportIssueView;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
@@ -74,7 +74,7 @@ public class MainLayout extends AppLayout {
 
         SideNavItem inventoryCheck = new SideNavItem(
                 "Inventory Check",
-                ApparatusSelectionView.class,
+                SelectApparatusView.class,
                 VaadinIcon.CHECK_SQUARE_O.create()
         );
         nav.addItem(inventoryCheck);
