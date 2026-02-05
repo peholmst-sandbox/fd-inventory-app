@@ -1,13 +1,16 @@
 package com.example.firestock.inventorycheck;
 
 import com.example.firestock.domain.primitives.ids.ApparatusId;
+import com.example.firestock.domain.primitives.ids.InventoryCheckId;
 import com.example.firestock.domain.primitives.ids.StationId;
+import com.example.firestock.domain.primitives.strings.UnitNumber;
 import com.example.firestock.jooq.enums.CheckStatus;
 import org.jooq.DSLContext;
 import org.jooq.Record4;
 import org.jooq.impl.DSL;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -169,6 +172,55 @@ class ApparatusQuery {
     }
 
     /**
+     * Finds apparatus with active check info for a station.
+     * Returns apparatus data with check status (but not user names - those are resolved separately).
+     *
+     * @param stationId the station to find apparatus for
+     * @return list of apparatus with their active check records
+     */
+    List<ApparatusWithActiveCheckRecord> findByStationIdWithActiveChecks(StationId stationId) {
+        // Subquery to get the latest completed check date for each apparatus
+        var latestCompletedCheck = DSL.select(
+                INVENTORY_CHECK.APPARATUS_ID,
+                DSL.max(INVENTORY_CHECK.COMPLETED_AT).as("last_check_date"))
+            .from(INVENTORY_CHECK)
+            .where(INVENTORY_CHECK.STATUS.eq(CheckStatus.COMPLETED))
+            .groupBy(INVENTORY_CHECK.APPARATUS_ID)
+            .asTable("latest_completed_check");
+
+        // Subquery to get active check info for each apparatus
+        var activeCheck = DSL.select(
+                INVENTORY_CHECK.APPARATUS_ID.as("active_apparatus_id"),
+                INVENTORY_CHECK.ID.as("active_check_id"),
+                INVENTORY_CHECK.STARTED_AT.as("active_started_at"))
+            .from(INVENTORY_CHECK)
+            .where(INVENTORY_CHECK.STATUS.eq(CheckStatus.IN_PROGRESS))
+            .asTable("active_check");
+
+        return create.select(
+                APPARATUS.ID,
+                APPARATUS.UNIT_NUMBER,
+                STATION.NAME,
+                latestCompletedCheck.field("last_check_date", LocalDateTime.class),
+                activeCheck.field("active_check_id", InventoryCheckId.class),
+                activeCheck.field("active_started_at", Instant.class))
+            .from(APPARATUS)
+            .join(STATION).on(APPARATUS.STATION_ID.eq(STATION.ID))
+            .leftJoin(latestCompletedCheck).on(APPARATUS.ID.eq(latestCompletedCheck.field(INVENTORY_CHECK.APPARATUS_ID)))
+            .leftJoin(activeCheck).on(APPARATUS.ID.eq(activeCheck.field("active_apparatus_id", ApparatusId.class)))
+            .where(APPARATUS.STATION_ID.eq(stationId))
+            .orderBy(APPARATUS.UNIT_NUMBER)
+            .fetch(r -> new ApparatusWithActiveCheckRecord(
+                r.value1(),
+                r.value2(),
+                r.value3(),
+                r.value4(),
+                r.value5(),
+                r.value6()
+            ));
+    }
+
+    /**
      * Simple record for compartment data.
      */
     private record CompartmentRecord(
@@ -177,4 +229,21 @@ class ApparatusQuery {
         String name,
         int displayOrder
     ) {}
+
+    /**
+     * Record for apparatus with active check status.
+     * User names are resolved separately by the service layer.
+     */
+    record ApparatusWithActiveCheckRecord(
+        ApparatusId id,
+        UnitNumber unitNumber,
+        String stationName,
+        LocalDateTime lastCheckDate,
+        InventoryCheckId activeCheckId,
+        Instant activeCheckStartedAt
+    ) {
+        boolean hasActiveCheck() {
+            return activeCheckId != null;
+        }
+    }
 }

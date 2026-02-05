@@ -596,4 +596,246 @@ class ShiftInventoryCheckServiceTest {
             service.abandonCheck(checkSummary.id())
         );
     }
+
+    // ==================== New UX Method Tests ====================
+
+    @Test
+    void getApparatusWithCheckStatus_returnsApparatusList() {
+        var result = service.getApparatusWithCheckStatus(testStationId);
+
+        assertFalse(result.isEmpty());
+        assertEquals(1, result.size());
+        assertEquals(testApparatusId, result.getFirst().id());
+        assertEquals("Test Station", result.getFirst().stationName());
+        assertFalse(result.getFirst().hasActiveCheck());
+        assertTrue(result.getFirst().currentCheckerNames().isEmpty());
+    }
+
+    @Test
+    void getApparatusWithCheckStatus_showsActiveCheck() {
+        // Start a check
+        service.startCheck(testApparatusId, testUserId);
+
+        var result = service.getApparatusWithCheckStatus(testStationId);
+
+        assertEquals(1, result.size());
+        assertTrue(result.getFirst().hasActiveCheck());
+    }
+
+    @Test
+    void getActiveCheckForStation_returnsEmpty_whenNoActiveCheck() {
+        var result = service.getActiveCheckForStation(testStationId);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void getActiveCheckForStation_returnsActiveCheck() {
+        var checkSummary = service.startCheck(testApparatusId, testUserId);
+
+        var result = service.getActiveCheckForStation(testStationId);
+
+        assertTrue(result.isPresent());
+        assertEquals(checkSummary.id(), result.get().checkId());
+        assertEquals(testApparatusId, result.get().apparatusId());
+        assertEquals("Engine 1", result.get().apparatusUnitNumber());
+        assertEquals(1, result.get().totalItems());
+        assertEquals(0, result.get().verifiedCount());
+    }
+
+    @Test
+    void getCompartmentProgress_returnsProgressForAllCompartments() {
+        var checkSummary = service.startCheck(testApparatusId, testUserId);
+
+        var result = service.getCompartmentProgress(checkSummary.id());
+
+        assertFalse(result.isEmpty());
+        assertEquals(1, result.size());
+        assertEquals(testCompartmentId, result.getFirst().id());
+        assertEquals("L1", result.getFirst().code());
+        assertEquals("Left Compartment 1", result.getFirst().name());
+        assertEquals(1, result.getFirst().totalItems());
+        assertEquals(0, result.getFirst().verifiedCount());
+        assertFalse(result.getFirst().isFullyChecked());
+        assertNull(result.getFirst().currentCheckerName());
+    }
+
+    @Test
+    void getCompartmentProgress_showsVerifiedCount() {
+        var checkSummary = service.startCheck(testApparatusId, testUserId);
+
+        // Verify the item
+        var request = new ItemVerificationRequest(
+            checkSummary.id(),
+            testEquipmentItemId,
+            null,
+            testCompartmentId,
+            null,
+            VerificationStatus.PRESENT,
+            null,
+            null,
+            null
+        );
+        service.verifyItem(request, testUserId);
+
+        var result = service.getCompartmentProgress(checkSummary.id());
+
+        assertEquals(1, result.getFirst().verifiedCount());
+        assertTrue(result.getFirst().isFullyChecked());
+    }
+
+    @Test
+    void getItemsWithStatus_returnsItemsWithStatus() {
+        var checkSummary = service.startCheck(testApparatusId, testUserId);
+
+        var result = service.getItemsWithStatus(checkSummary.id(), testCompartmentId);
+
+        assertEquals(1, result.size());
+        assertEquals(testEquipmentItemId, result.getFirst().item().equipmentItemId());
+        assertNull(result.getFirst().verificationStatus());
+        assertFalse(result.getFirst().isVerified());
+    }
+
+    @Test
+    void getItemsWithStatus_returnsVerifiedItems() {
+        var checkSummary = service.startCheck(testApparatusId, testUserId);
+
+        // Verify the item
+        var request = new ItemVerificationRequest(
+            checkSummary.id(),
+            testEquipmentItemId,
+            null,
+            testCompartmentId,
+            null,
+            VerificationStatus.PRESENT,
+            null,
+            null,
+            null
+        );
+        service.verifyItem(request, testUserId);
+
+        var result = service.getItemsWithStatus(checkSummary.id(), testCompartmentId);
+
+        assertEquals(1, result.size());
+        assertEquals(VerificationStatus.PRESENT, result.getFirst().verificationStatus());
+        assertTrue(result.getFirst().isVerified());
+        assertNotNull(result.getFirst().verifiedAt());
+    }
+
+    @Test
+    void startCheckingCompartment_acquiresLock() {
+        var checkSummary = service.startCheck(testApparatusId, testUserId);
+
+        service.startCheckingCompartment(checkSummary.id(), testCompartmentId, testUserId);
+
+        // Verify we can get the checker name
+        var checkerName = service.getCompartmentCheckerName(checkSummary.id(), testCompartmentId);
+        assertTrue(checkerName.isPresent());
+    }
+
+    @Test
+    void startCheckingCompartment_throwsException_whenAlreadyLocked() {
+        var checkSummary = service.startCheck(testApparatusId, testUserId);
+
+        // Create another user
+        var otherUserId = UserId.generate();
+        create.insertInto(APP_USER)
+            .set(APP_USER.ID, otherUserId)
+            .set(APP_USER.BADGE_NUMBER, new com.example.firestock.domain.primitives.strings.BadgeNumber("B002"))
+            .set(APP_USER.FIRST_NAME, "Other")
+            .set(APP_USER.LAST_NAME, "User")
+            .set(APP_USER.EMAIL, new com.example.firestock.domain.primitives.strings.EmailAddress("other@example.com"))
+            .set(APP_USER.ROLE, UserRole.FIREFIGHTER)
+            .execute();
+
+        // First user acquires lock
+        service.startCheckingCompartment(checkSummary.id(), testCompartmentId, testUserId);
+
+        // Second user should fail
+        assertThrows(ShiftInventoryCheckService.CompartmentLockedException.class, () ->
+            service.startCheckingCompartment(checkSummary.id(), testCompartmentId, otherUserId)
+        );
+    }
+
+    @Test
+    void stopCheckingCompartment_releasesLock() {
+        var checkSummary = service.startCheck(testApparatusId, testUserId);
+
+        service.startCheckingCompartment(checkSummary.id(), testCompartmentId, testUserId);
+        service.stopCheckingCompartment(checkSummary.id(), testCompartmentId, testUserId);
+
+        var checkerName = service.getCompartmentCheckerName(checkSummary.id(), testCompartmentId);
+        assertTrue(checkerName.isEmpty());
+    }
+
+    @Test
+    void takeOverCompartment_acquiresLockAndReturnsPreviousChecker() {
+        var checkSummary = service.startCheck(testApparatusId, testUserId);
+
+        // Create another user
+        var otherUserId = UserId.generate();
+        create.insertInto(APP_USER)
+            .set(APP_USER.ID, otherUserId)
+            .set(APP_USER.BADGE_NUMBER, new com.example.firestock.domain.primitives.strings.BadgeNumber("B003"))
+            .set(APP_USER.FIRST_NAME, "Other")
+            .set(APP_USER.LAST_NAME, "Person")
+            .set(APP_USER.EMAIL, new com.example.firestock.domain.primitives.strings.EmailAddress("other2@example.com"))
+            .set(APP_USER.ROLE, UserRole.FIREFIGHTER)
+            .execute();
+
+        // First user acquires lock
+        service.startCheckingCompartment(checkSummary.id(), testCompartmentId, testUserId);
+
+        // Second user takes over
+        String previousChecker = service.takeOverCompartment(checkSummary.id(), testCompartmentId, otherUserId);
+
+        assertEquals("Test User", previousChecker);
+        var checkerName = service.getCompartmentCheckerName(checkSummary.id(), testCompartmentId);
+        assertTrue(checkerName.isPresent());
+        assertEquals("Other Person", checkerName.get());
+    }
+
+    @Test
+    void completeCheck_clearsCompartmentLocks() {
+        var checkSummary = service.startCheck(testApparatusId, testUserId);
+
+        // Acquire lock
+        service.startCheckingCompartment(checkSummary.id(), testCompartmentId, testUserId);
+
+        // Verify the item
+        var request = new ItemVerificationRequest(
+            checkSummary.id(),
+            testEquipmentItemId,
+            null,
+            testCompartmentId,
+            null,
+            VerificationStatus.PRESENT,
+            null,
+            null,
+            null
+        );
+        service.verifyItem(request, testUserId);
+
+        // Complete the check
+        service.completeCheck(checkSummary.id());
+
+        // Lock should be cleared
+        var checkerName = service.getCompartmentCheckerName(checkSummary.id(), testCompartmentId);
+        assertTrue(checkerName.isEmpty());
+    }
+
+    @Test
+    void abandonCheck_clearsCompartmentLocks() {
+        var checkSummary = service.startCheck(testApparatusId, testUserId);
+
+        // Acquire lock
+        service.startCheckingCompartment(checkSummary.id(), testCompartmentId, testUserId);
+
+        // Abandon the check
+        service.abandonCheck(checkSummary.id());
+
+        // Lock should be cleared
+        var checkerName = service.getCompartmentCheckerName(checkSummary.id(), testCompartmentId);
+        assertTrue(checkerName.isEmpty());
+    }
 }
