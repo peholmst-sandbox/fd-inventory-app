@@ -15,8 +15,7 @@ import java.time.Clock;
 @Push
 @StyleSheet(Lumo.STYLESHEET) // Use Aura.STYLESHEET to use Aura instead
 @StyleSheet(Lumo.UTILITY_STYLESHEET)
-@StyleSheet("styles.css") // Your custom styles
-@StyleSheet("styles/inventory-check.css") // Inventory check mobile-first styles
+@StyleSheet("styles.css") // Your custom styles (includes inventory-check mobile-first styles)
 public class Application implements AppShellConfigurator {
 
     public static void main(String[] args) {
